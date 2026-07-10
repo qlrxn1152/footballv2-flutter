@@ -115,6 +115,19 @@ class TeamRepository {
       );
     });
   }
+
+  Future<TeamLeaderTransferResult> transferLeader({
+    required int teamId,
+    required int newLeaderMemberId,
+  }) {
+    return runApi(() async {
+      final response = await _apiClient.dio.patch<Object?>(
+        '/api/teams/$teamId/leader',
+        data: {'newLeaderMemberId': newLeaderMemberId},
+      );
+      return TeamLeaderTransferResult.fromJson(jsonMap(response.data));
+    });
+  }
 }
 
 List<dynamic> _teamRows(Object? data) {

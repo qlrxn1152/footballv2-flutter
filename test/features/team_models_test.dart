@@ -110,4 +110,20 @@ void main() {
     expect(teams.first.teamName, 'teamA');
     expect(teams.last.leaderUsername, 'asdf');
   });
+
+  test('팀장 위임 응답을 변환한다', () {
+    final result = TeamLeaderTransferResult.fromJson({
+      'teamId': 3,
+      'teamName': 'teamA',
+      'oldLeaderMemberId': 2,
+      'oldLeaderUsername': 'test',
+      'newLeaderMemberId': 7,
+      'newLeaderUsername': 'newLeader',
+    });
+
+    expect(result.teamId, 3);
+    expect(result.oldLeaderUsername, 'test');
+    expect(result.newLeaderMemberId, 7);
+    expect(result.newLeaderUsername, 'newLeader');
+  });
 }

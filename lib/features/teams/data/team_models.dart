@@ -208,3 +208,48 @@ class TeamJoinRequest {
     );
   }
 }
+
+class TeamLeaderTransferResult {
+  const TeamLeaderTransferResult({
+    required this.teamId,
+    required this.teamName,
+    required this.oldLeaderMemberId,
+    required this.oldLeaderUsername,
+    required this.newLeaderMemberId,
+    required this.newLeaderUsername,
+  });
+
+  final int teamId;
+  final String teamName;
+  final int oldLeaderMemberId;
+  final String oldLeaderUsername;
+  final int newLeaderMemberId;
+  final String newLeaderUsername;
+
+  factory TeamLeaderTransferResult.fromJson(Map<String, dynamic> json) {
+    return TeamLeaderTransferResult(
+      teamId: _requiredInt(json, const ['teamId'], 'teamId'),
+      teamName: _requiredString(json, const ['teamName'], 'teamName'),
+      oldLeaderMemberId: _requiredInt(
+        json,
+        const ['oldLeaderMemberId'],
+        'oldLeaderMemberId',
+      ),
+      oldLeaderUsername: _requiredString(
+        json,
+        const ['oldLeaderUsername'],
+        'oldLeaderUsername',
+      ),
+      newLeaderMemberId: _requiredInt(
+        json,
+        const ['newLeaderMemberId'],
+        'newLeaderMemberId',
+      ),
+      newLeaderUsername: _requiredString(
+        json,
+        const ['newLeaderUsername'],
+        'newLeaderUsername',
+      ),
+    );
+  }
+}

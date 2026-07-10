@@ -7,6 +7,7 @@ import '../../members/data/member_repository.dart';
 import '../data/team_models.dart';
 import '../data/team_repository.dart';
 import 'team_join_requests_screen.dart';
+import 'team_leader_transfer_screen.dart';
 
 class TeamDetailScreen extends ConsumerStatefulWidget {
   const TeamDetailScreen({required this.teamId, super.key});
@@ -50,6 +51,28 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
     } finally {
       if (mounted) setState(() => _joining = false);
     }
+  }
+
+  Future<void> _openLeaderTransfer(TeamDetail team) async {
+    final result = await Navigator.of(context).push<TeamLeaderTransferResult>(
+      MaterialPageRoute(
+        builder: (_) => TeamLeaderTransferScreen(
+          teamId: team.teamId,
+          teamName: team.teamName,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    await _refresh();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${result.newLeaderUsername}님에게 팀장 권한을 위임했습니다.',
+        ),
+      ),
+    );
   }
 
   @override
@@ -101,17 +124,28 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                   _TeamHero(team: team),
                   const SizedBox(height: 14),
                   if (isLeader)
-                    FilledButton.icon(
-                      onPressed: () => Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (_) => TeamJoinRequestsScreen(
-                            teamId: team.teamId,
-                            teamName: team.teamName,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () => Navigator.of(context).push<void>(
+                            MaterialPageRoute(
+                              builder: (_) => TeamJoinRequestsScreen(
+                                teamId: team.teamId,
+                                teamName: team.teamName,
+                              ),
+                            ),
                           ),
+                          icon: const Icon(Icons.mark_email_unread_outlined),
+                          label: const Text('가입 신청 관리'),
                         ),
-                      ),
-                      icon: const Icon(Icons.mark_email_unread_outlined),
-                      label: const Text('가입 신청 관리'),
+                        const SizedBox(height: 9),
+                        OutlinedButton.icon(
+                          onPressed: () => _openLeaderTransfer(team),
+                          icon: const Icon(Icons.manage_accounts_outlined),
+                          label: const Text('팀장 위임'),
+                        ),
+                      ],
                     )
                   else if (isMember)
                     const _MembershipBanner()
