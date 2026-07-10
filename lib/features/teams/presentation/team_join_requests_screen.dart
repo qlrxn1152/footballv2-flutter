@@ -83,7 +83,8 @@ class _TeamJoinRequestsScreenState
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
-                await ref.refresh(joinRequestsProvider(_query).future);
+                ref.invalidate(joinRequestsProvider(_query));
+                await ref.read(joinRequestsProvider(_query).future);
               },
               child: requests.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -109,7 +110,7 @@ class _TeamJoinRequestsScreenState
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
                         itemCount: items.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final request = items[index];
                           return _RequestCard(

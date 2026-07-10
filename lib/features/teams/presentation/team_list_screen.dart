@@ -15,7 +15,8 @@ class TeamListScreen extends ConsumerWidget {
 
     return RefreshIndicator(
       onRefresh: () async {
-        await ref.refresh(teamsProvider.future);
+        ref.invalidate(teamsProvider);
+        await ref.read(teamsProvider.future);
       },
       child: teams.when(
         loading: () => const _LoadingView(),
@@ -26,7 +27,7 @@ class TeamListScreen extends ConsumerWidget {
         data: (items) => ListView.separated(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
           itemCount: items.length + 1,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             if (index == 0) {
               return _TeamListHeader(

@@ -13,7 +13,8 @@ class MemberRankingScreen extends ConsumerWidget {
 
     return RefreshIndicator(
       onRefresh: () async {
-        await ref.refresh(memberRankingsProvider.future);
+        ref.invalidate(memberRankingsProvider);
+        await ref.read(memberRankingsProvider.future);
       },
       child: rankings.when(
         loading: () => const _LoadingList(),
