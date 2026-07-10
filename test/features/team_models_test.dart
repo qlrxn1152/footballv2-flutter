@@ -126,4 +126,31 @@ void main() {
     expect(result.newLeaderMemberId, 7);
     expect(result.newLeaderUsername, 'newLeader');
   });
+
+  test('팀 이름 변경 응답을 변환한다', () {
+    final result = TeamNameUpdateResult.fromJson({
+      'teamId': 3,
+      'teamName': 'renamedTeam',
+      'teamRating': 1500,
+      'leaderMemberId': 2,
+      'leaderUsername': 'test',
+    });
+
+    expect(result.teamName, 'renamedTeam');
+    expect(result.teamRating, 1500);
+    expect(result.leaderUsername, 'test');
+  });
+
+  test('팀 해체 응답을 변환한다', () {
+    final result = TeamDisbandResult.fromJson({
+      'teamId': 3,
+      'teamName': 'teamA',
+      'leaderMemberId': 2,
+      'leaderUsername': 'test',
+      'disbanded': true,
+    });
+
+    expect(result.teamId, 3);
+    expect(result.disbanded, isTrue);
+  });
 }

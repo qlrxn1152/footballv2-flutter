@@ -8,6 +8,7 @@ import '../data/team_models.dart';
 import '../data/team_repository.dart';
 import 'team_join_requests_screen.dart';
 import 'team_leader_transfer_screen.dart';
+import 'team_settings_screen.dart';
 
 class TeamDetailScreen extends ConsumerStatefulWidget {
   const TeamDetailScreen({required this.teamId, super.key});
@@ -72,6 +73,33 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
           '${result.newLeaderUsername}님에게 팀장 권한을 위임했습니다.',
         ),
       ),
+    );
+  }
+
+  Future<void> _openTeamSettings(TeamDetail team, int memberCount) async {
+    final outcome = await Navigator.of(context).push<TeamSettingsOutcome>(
+      MaterialPageRoute(
+        builder: (_) => TeamSettingsScreen(
+          teamId: team.teamId,
+          teamName: team.teamName,
+          memberCount: memberCount,
+        ),
+      ),
+    );
+    if (outcome == null || !mounted) return;
+
+    if (outcome.disbanded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${outcome.teamName} 팀을 해체했습니다.')),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
+
+    await _refresh();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('팀 이름을 ${outcome.teamName}(으)로 변경했습니다.')),
     );
   }
 
@@ -144,6 +172,15 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                           onPressed: () => _openLeaderTransfer(team),
                           icon: const Icon(Icons.manage_accounts_outlined),
                           label: const Text('팀장 위임'),
+                        ),
+                        const SizedBox(height: 9),
+                        OutlinedButton.icon(
+                          onPressed: () => _openTeamSettings(
+                            team,
+                            teamMembers.length,
+                          ),
+                          icon: const Icon(Icons.settings_outlined),
+                          label: const Text('팀 설정'),
                         ),
                       ],
                     )

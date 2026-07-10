@@ -253,3 +253,75 @@ class TeamLeaderTransferResult {
     );
   }
 }
+
+class TeamNameUpdateResult {
+  const TeamNameUpdateResult({
+    required this.teamId,
+    required this.teamName,
+    required this.teamRating,
+    required this.leaderMemberId,
+    required this.leaderUsername,
+  });
+
+  final int teamId;
+  final String teamName;
+  final int teamRating;
+  final int leaderMemberId;
+  final String leaderUsername;
+
+  factory TeamNameUpdateResult.fromJson(Map<String, dynamic> json) {
+    return TeamNameUpdateResult(
+      teamId: _requiredInt(json, const ['teamId'], 'teamId'),
+      teamName: _requiredString(json, const ['teamName'], 'teamName'),
+      teamRating: _requiredInt(
+        json,
+        const ['teamRating'],
+        'teamRating',
+      ),
+      leaderMemberId: _requiredInt(
+        json,
+        const ['leaderMemberId'],
+        'leaderMemberId',
+      ),
+      leaderUsername: _requiredString(
+        json,
+        const ['leaderUsername'],
+        'leaderUsername',
+      ),
+    );
+  }
+}
+
+class TeamDisbandResult {
+  const TeamDisbandResult({
+    required this.teamId,
+    required this.teamName,
+    required this.leaderMemberId,
+    required this.leaderUsername,
+    required this.disbanded,
+  });
+
+  final int teamId;
+  final String teamName;
+  final int leaderMemberId;
+  final String leaderUsername;
+  final bool disbanded;
+
+  factory TeamDisbandResult.fromJson(Map<String, dynamic> json) {
+    return TeamDisbandResult(
+      teamId: _requiredInt(json, const ['teamId'], 'teamId'),
+      teamName: _requiredString(json, const ['teamName'], 'teamName'),
+      leaderMemberId: _requiredInt(
+        json,
+        const ['leaderMemberId'],
+        'leaderMemberId',
+      ),
+      leaderUsername: _requiredString(
+        json,
+        const ['leaderUsername'],
+        'leaderUsername',
+      ),
+      disbanded: json['disbanded'] as bool? ?? false,
+    );
+  }
+}

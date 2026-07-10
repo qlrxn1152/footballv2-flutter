@@ -128,6 +128,34 @@ class TeamRepository {
       return TeamLeaderTransferResult.fromJson(jsonMap(response.data));
     });
   }
+
+  Future<TeamNameUpdateResult> updateTeamName({
+    required int teamId,
+    required String teamName,
+  }) {
+    return runApi(() async {
+      final response = await _apiClient.dio.patch<Object?>(
+        '/api/teams/$teamId/name',
+        data: {'teamName': teamName},
+      );
+      if (response.statusCode == 204) {
+        throw const ApiException('현재 팀 이름과 다른 이름을 입력하세요.');
+      }
+      return TeamNameUpdateResult.fromJson(jsonMap(response.data));
+    });
+  }
+
+  Future<TeamDisbandResult> disbandTeam(int teamId) {
+    return runApi(() async {
+      final response = await _apiClient.dio.delete<Object?>(
+        '/api/teams/$teamId',
+      );
+      if (response.statusCode == 204) {
+        throw const ApiException('팀장만 남은 팀만 해체할 수 있습니다.');
+      }
+      return TeamDisbandResult.fromJson(jsonMap(response.data));
+    });
+  }
 }
 
 List<dynamic> _teamRows(Object? data) {
