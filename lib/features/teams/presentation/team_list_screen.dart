@@ -115,6 +115,9 @@ class _TeamListHeader extends StatelessWidget {
             onPressed: onCreate,
             icon: const Icon(Icons.add),
             label: const Text('팀 만들기'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 44),
+            ),
           ),
         ],
       ),

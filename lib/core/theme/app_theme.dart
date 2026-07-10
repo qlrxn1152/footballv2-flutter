@@ -42,7 +42,10 @@ abstract final class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(52),
+          // Size.fromHeight는 너비를 infinity로 만들기 때문에 Row 안의
+          // 버튼에서 레이아웃 예외가 발생합니다. 높이만 유지하고 너비는
+          // 부모 제약에 맞도록 유한한 최소값을 사용합니다.
+          minimumSize: const Size(64, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
