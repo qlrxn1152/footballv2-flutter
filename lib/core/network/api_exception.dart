@@ -1,0 +1,53 @@
+import 'package:dio/dio.dart';
+
+class ApiException implements Exception {
+  const ApiException(this.message, {this.code, this.statusCode});
+
+  final String message;
+  final String? code;
+  final int? statusCode;
+
+  factory ApiException.fromDio(DioException exception) {
+    final data = exception.response?.data;
+    if (data is Map) {
+      return ApiException(
+        data['message']?.toString() ?? '요청을 처리하지 못했습니다.',
+        code: data['code']?.toString(),
+        statusCode: exception.response?.statusCode,
+      );
+    }
+
+    final message = switch (exception.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout => '서버 응답 시간이 초과되었습니다.',
+      DioExceptionType.connectionError =>
+        '서버에 연결할 수 없습니다. 백엔드 실행 상태와 API 주소를 확인하세요.',
+      _ => '네트워크 요청 중 오류가 발생했습니다.',
+    };
+
+    return ApiException(
+      message,
+      statusCode: exception.response?.statusCode,
+    );
+  }
+
+  @override
+  String toString() => message;
+}
+
+Future<T> runApi<T>(Future<T> Function() request) async {
+  try {
+    return await request();
+  } on DioException catch (error) {
+    throw ApiException.fromDio(error);
+  }
+}
+
+Map<String, dynamic> jsonMap(Object? data) {
+  if (data is Map<String, dynamic>) return data;
+  if (data is Map) {
+    return data.map((key, value) => MapEntry(key.toString(), value));
+  }
+  throw const ApiException('서버 응답 형식이 올바르지 않습니다.');
+}
