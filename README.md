@@ -7,6 +7,7 @@ FootballV2 Spring Boot REST API를 사용하는 Android Flutter 앱입니다.
 - 회원가입 후 자동 로그인
 - JWT와 회원 정보 보안 저장
 - 선수 레이팅 랭킹
+- 선수 상세 및 소속 팀 이동
 - 팀 레이팅 목록
 - 팀 상세 및 팀원 목록
 - 팀 생성

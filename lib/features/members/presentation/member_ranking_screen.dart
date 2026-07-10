@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/member_ranking.dart';
 import '../data/member_repository.dart';
+import 'member_detail_screen.dart';
 
 class MemberRankingScreen extends ConsumerWidget {
   const MemberRankingScreen({super.key});
@@ -32,7 +33,16 @@ class MemberRankingScreen extends ConsumerWidget {
                 ),
                 itemBuilder: (context, index) {
                   if (index == 0) return const _RankingHeader();
-                  return _RankingCard(member: items[index - 1]);
+                  final member = items[index - 1];
+                  return _RankingCard(
+                    member: member,
+                    onTap: () => Navigator.of(context).push<void>(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            MemberDetailScreen(memberId: member.memberId),
+                      ),
+                    ),
+                  );
                 },
               ),
       ),
@@ -80,9 +90,10 @@ class _RankingHeader extends StatelessWidget {
 }
 
 class _RankingCard extends StatelessWidget {
-  const _RankingCard({required this.member});
+  const _RankingCard({required this.member, required this.onTap});
 
   final MemberRanking member;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -95,72 +106,78 @@ class _RankingCard extends StatelessWidget {
     };
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: rankColor.withValues(alpha: 0.13),
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: Text(
-                '${member.rank}',
-                style: TextStyle(
-                  color: rankColor,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: rankColor.withValues(alpha: 0.13),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Text(
+                  '${member.rank}',
+                  style: TextStyle(
+                    color: rankColor,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      member.username,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      member.teamName ?? '소속 팀 없음',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    member.username,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
+                    '${member.rating}',
+                    style: TextStyle(
+                      color: colorScheme.primary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 3),
                   Text(
-                    member.teamName ?? '소속 팀 없음',
+                    'RATING',
                     style: TextStyle(
                       color: colorScheme.onSurfaceVariant,
-                      fontSize: 13,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${member.rating}',
-                  style: TextStyle(
-                    color: colorScheme.primary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  'RATING',
-                  style: TextStyle(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ],
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, size: 20),
+            ],
+          ),
         ),
       ),
     );
