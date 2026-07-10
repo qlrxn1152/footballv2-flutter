@@ -64,7 +64,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
-      body: IndexedStack(index: _index, children: _pages),
+      // 선택된 화면만 마운트해 탭 진입 시 해당 autoDispose provider가
+      // 항상 새 API 요청을 시작하도록 합니다.
+      body: _pages[_index],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: _selectTab,

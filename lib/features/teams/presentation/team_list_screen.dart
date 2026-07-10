@@ -29,7 +29,10 @@ class TeamListScreen extends ConsumerWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                 children: [
-                  _TeamListHeader(onCreate: () => _createTeam(context, ref)),
+                  _TeamListHeader(
+                    teamCount: 0,
+                    onCreate: () => _createTeam(context, ref),
+                  ),
                   const SizedBox(height: 18),
                   const _EmptyTeamCard(),
                 ],
@@ -41,6 +44,7 @@ class TeamListScreen extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return _TeamListHeader(
+                      teamCount: items.length,
                       onCreate: () => _createTeam(context, ref),
                     );
                   }
@@ -81,8 +85,9 @@ class TeamListScreen extends ConsumerWidget {
 }
 
 class _TeamListHeader extends StatelessWidget {
-  const _TeamListHeader({required this.onCreate});
+  const _TeamListHeader({required this.teamCount, required this.onCreate});
 
+  final int teamCount;
   final VoidCallback onCreate;
 
   @override
@@ -102,7 +107,7 @@ class _TeamListHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text('팀 레이팅 순으로 정렬됩니다.'),
+                Text('팀 레이팅 순 · 총 $teamCount개 팀'),
               ],
             ),
           ),
@@ -258,6 +263,12 @@ class _ErrorView extends StatelessWidget {
         const SizedBox(height: 120),
         const Icon(Icons.cloud_off_outlined, size: 54),
         const SizedBox(height: 16),
+        const Text(
+          'GET /api/teams 호출 또는 응답 변환에 실패했습니다.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
         Text(message, textAlign: TextAlign.center),
         const SizedBox(height: 18),
         Center(

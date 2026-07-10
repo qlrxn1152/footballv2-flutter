@@ -47,4 +47,67 @@ void main() {
 
     expect(request.status, 'ACCEPTED');
   });
+
+  test('팀 목록의 문자형 숫자와 이전 필드명도 변환한다', () {
+    final team = TeamSummary.fromJson({
+      'id': '2',
+      'name': 'LegacyTeam',
+      'rating': '1510',
+      'leaderId': '20',
+      'leaderName': 'captain',
+      'teamMemberCount': '3',
+      'createdAt': '2026-07-10T10:30:00',
+    });
+
+    expect(team.teamId, 2);
+    expect(team.teamName, 'LegacyTeam');
+    expect(team.teamRating, 1510);
+    expect(team.leaderMemberId, 20);
+    expect(team.memberCount, 3);
+  });
+
+  test('팀 목록의 부가 필드가 null이어도 핵심 정보는 표시한다', () {
+    final team = TeamSummary.fromJson({
+      'teamId': 3,
+      'teamName': 'NewTeam',
+      'teamRating': null,
+      'leaderMemberId': null,
+      'leaderUsername': null,
+      'memberCount': null,
+      'createdAt': null,
+    });
+
+    expect(team.teamRating, 0);
+    expect(team.leaderUsername, '리더 정보 없음');
+    expect(team.memberCount, 0);
+  });
+
+  test('실제 팀 목록 응답 두 건을 모두 변환한다', () {
+    final response = [
+      {
+        'teamId': 3,
+        'teamName': 'teamA',
+        'teamRating': 1500,
+        'leaderMemberId': 2,
+        'leaderUsername': 'test',
+        'memberCount': 1,
+        'createdAt': '2026-07-09T00:00:00',
+      },
+      {
+        'teamId': 4,
+        'teamName': 'tttttt11',
+        'teamRating': 1500,
+        'leaderMemberId': 6,
+        'leaderUsername': 'asdf',
+        'memberCount': 1,
+        'createdAt': '2026-07-09T21:01:54.281688',
+      },
+    ];
+
+    final teams = response.map(TeamSummary.fromJson).toList();
+
+    expect(teams, hasLength(2));
+    expect(teams.first.teamName, 'teamA');
+    expect(teams.last.leaderUsername, 'asdf');
+  });
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
@@ -12,13 +13,32 @@ class TeamRepository {
   Future<List<TeamSummary>> fetchTeams() {
     return runApi(() async {
       final response = await _apiClient.dio.get<Object?>('/api/teams');
-      final data = response.data;
-      if (data is! List) {
-        throw const ApiException('팀 목록 응답 형식이 올바르지 않습니다.');
+      final rows = _teamRows(response.data);
+      final teams = <TeamSummary>[];
+
+      for (var index = 0; index < rows.length; index++) {
+        try {
+          teams.add(TeamSummary.fromJson(jsonMap(rows[index])));
+        } catch (_) {
+          // 일부 오래된 데이터가 현재 DTO와 달라도 정상 팀은 계속 표시합니다.
+          continue;
+        }
       }
-      return data
-          .map((item) => TeamSummary.fromJson(jsonMap(item)))
-          .toList(growable: false);
+
+      if (rows.isNotEmpty && teams.isEmpty) {
+        throw const ApiException(
+          '팀 데이터의 teamId 또는 teamName을 읽지 못했습니다. '
+          '백엔드 응답 필드를 확인하세요.',
+        );
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[FootballV2] GET /api/teams '
+          'status=${response.statusCode}, received=${rows.length}, '
+          'parsed=${teams.length}',
+        );
+      }
+      return List.unmodifiable(teams);
     });
   }
 
@@ -95,6 +115,26 @@ class TeamRepository {
       );
     });
   }
+}
+
+List<dynamic> _teamRows(Object? data) {
+  Object? current = data;
+  for (var depth = 0; depth < 3; depth++) {
+    if (current is List) return current;
+    if (current is Map) {
+      Object? next;
+      for (final key in const ['content', 'teams', 'data']) {
+        if (current[key] != null) {
+          next = current[key];
+          break;
+        }
+      }
+      current = next;
+      continue;
+    }
+    break;
+  }
+  throw const ApiException('팀 목록 응답이 배열 형식이 아닙니다.');
 }
 
 final teamRepositoryProvider = Provider<TeamRepository>(

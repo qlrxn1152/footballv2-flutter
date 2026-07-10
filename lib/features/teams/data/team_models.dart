@@ -3,6 +3,51 @@ DateTime? _dateTime(Object? value) {
   return DateTime.tryParse(value.toString());
 }
 
+Object? _firstValue(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value != null) return value;
+  }
+  return null;
+}
+
+int _requiredInt(
+  Map<String, dynamic> json,
+  List<String> keys,
+  String fieldName,
+) {
+  final value = _firstValue(json, keys);
+  if (value is num) return value.toInt();
+  final parsed = int.tryParse(value?.toString() ?? '');
+  if (parsed != null) return parsed;
+  throw FormatException('$fieldName 값이 없거나 숫자가 아닙니다.');
+}
+
+int _intOrZero(Map<String, dynamic> json, List<String> keys) {
+  final value = _firstValue(json, keys);
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+String _requiredString(
+  Map<String, dynamic> json,
+  List<String> keys,
+  String fieldName,
+) {
+  final value = _firstValue(json, keys)?.toString().trim();
+  if (value != null && value.isNotEmpty) return value;
+  throw FormatException('$fieldName 값이 없습니다.');
+}
+
+String _stringOr(
+  Map<String, dynamic> json,
+  List<String> keys,
+  String fallback,
+) {
+  final value = _firstValue(json, keys)?.toString().trim();
+  return value == null || value.isEmpty ? fallback : value;
+}
+
 class TeamSummary {
   const TeamSummary({
     required this.teamId,
@@ -24,12 +69,26 @@ class TeamSummary {
 
   factory TeamSummary.fromJson(Map<String, dynamic> json) {
     return TeamSummary(
-      teamId: (json['teamId'] as num).toInt(),
-      teamName: json['teamName'] as String,
-      teamRating: (json['teamRating'] as num).toInt(),
-      leaderMemberId: (json['leaderMemberId'] as num).toInt(),
-      leaderUsername: json['leaderUsername'] as String,
-      memberCount: (json['memberCount'] as num).toInt(),
+      teamId: _requiredInt(json, const ['teamId', 'id'], 'teamId'),
+      teamName: _requiredString(
+        json,
+        const ['teamName', 'name'],
+        'teamName',
+      ),
+      teamRating: _intOrZero(json, const ['teamRating', 'rating']),
+      leaderMemberId: _intOrZero(
+        json,
+        const ['leaderMemberId', 'leaderId'],
+      ),
+      leaderUsername: _stringOr(
+        json,
+        const ['leaderUsername', 'leaderName'],
+        '리더 정보 없음',
+      ),
+      memberCount: _intOrZero(
+        json,
+        const ['memberCount', 'teamMemberCount'],
+      ),
       createdAt: _dateTime(json['createdAt']),
     );
   }
@@ -56,12 +115,26 @@ class TeamDetail {
 
   factory TeamDetail.fromJson(Map<String, dynamic> json) {
     return TeamDetail(
-      teamId: (json['teamId'] as num).toInt(),
-      teamName: json['teamName'] as String,
-      teamRating: (json['teamRating'] as num).toInt(),
-      leaderMemberId: (json['leaderMemberId'] as num).toInt(),
-      leaderUsername: json['leaderUsername'] as String,
-      memberCount: (json['memberCount'] as num).toInt(),
+      teamId: _requiredInt(json, const ['teamId', 'id'], 'teamId'),
+      teamName: _requiredString(
+        json,
+        const ['teamName', 'name'],
+        'teamName',
+      ),
+      teamRating: _intOrZero(json, const ['teamRating', 'rating']),
+      leaderMemberId: _intOrZero(
+        json,
+        const ['leaderMemberId', 'leaderId'],
+      ),
+      leaderUsername: _stringOr(
+        json,
+        const ['leaderUsername', 'leaderName'],
+        '리더 정보 없음',
+      ),
+      memberCount: _intOrZero(
+        json,
+        const ['memberCount', 'teamMemberCount'],
+      ),
       createdAt: _dateTime(json['createdAt']),
     );
   }
