@@ -12,8 +12,11 @@ FootballV2 Spring Boot REST API를 사용하는 Android Flutter 앱입니다.
 - 팀 상세 및 팀원 목록
 - 팀 생성
 - 팀 가입 신청
+- 마이페이지와 현재 소속 팀 조회
+- 내 팀 가입 신청 조회·취소
+- 일반 팀원의 팀 탈퇴
 - 팀 리더의 가입 신청 조회·수락·거절
-- 로딩, 빈 목록, 네트워크 오류, 당겨서 새로고침 처리
+- 로딩, 빈 목록, 네트워크 오류, 당겨서·탭·상단 버튼 새로고침 처리
 
 ## 사용 기술
 
@@ -52,6 +55,8 @@ chmod +x tool/bootstrap.sh
 POST /api/auth/signup
 POST /api/auth/login
 GET  /api/members/ranking
+GET  /api/members/me
+GET  /api/members/me/team-join-requests
 GET  /api/teams
 ```
 
@@ -110,6 +115,5 @@ flutter test
 
 ## 아직 연결하지 않은 기능
 
-- 선수 상세: 백엔드 `GET /api/members/{memberId}` 구현 후 연결
 - 매치: 백엔드 매치 API 구현 후 추가
 - 토큰 갱신: 현재 백엔드에 refresh token API가 없음

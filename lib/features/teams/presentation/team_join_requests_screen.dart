@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../members/data/member_repository.dart';
 import '../data/team_models.dart';
 import '../data/team_repository.dart';
 
@@ -35,10 +36,12 @@ class _TeamJoinRequestsScreenState
         requestId: request.teamJoinRequestId,
         accept: accept,
       );
+      if (!mounted) return;
       ref.invalidate(joinRequestsProvider(_query));
       ref.invalidate(teamMembersProvider(widget.teamId));
       ref.invalidate(teamDetailProvider(widget.teamId));
-      if (!mounted) return;
+      ref.invalidate(teamsProvider);
+      ref.invalidate(memberRankingsProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(accept ? '가입 신청을 수락했습니다.' : '가입 신청을 거절했습니다.')),
       );
@@ -71,8 +74,9 @@ class _TeamJoinRequestsScreenState
             child: SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'PENDING', label: Text('대기')),
-                ButtonSegment(value: 'ACCEPT', label: Text('수락')),
-                ButtonSegment(value: 'REJECT', label: Text('거절')),
+                ButtonSegment(value: 'ACCEPTED', label: Text('수락')),
+                ButtonSegment(value: 'REJECTED', label: Text('거절')),
+                ButtonSegment(value: 'CANCELED', label: Text('취소')),
               ],
               selected: {_status},
               onSelectionChanged: (selected) {
@@ -211,8 +215,9 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (status) {
-      'ACCEPT' => ('수락', const Color(0xFF087F5B)),
-      'REJECT' => ('거절', Theme.of(context).colorScheme.error),
+      'ACCEPTED' => ('수락', const Color(0xFF087F5B)),
+      'REJECTED' => ('거절', Theme.of(context).colorScheme.error),
+      'CANCELED' => ('취소', Theme.of(context).colorScheme.outline),
       _ => ('대기', const Color(0xFFF08C00)),
     };
 

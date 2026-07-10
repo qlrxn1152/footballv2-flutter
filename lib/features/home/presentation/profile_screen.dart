@@ -1,81 +1,230 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../../members/data/member_account.dart';
+import '../../members/data/member_repository.dart';
+import '../../teams/data/team_repository.dart';
+import '../../teams/presentation/team_detail_screen.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).session!;
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(22),
-            child: Column(
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  final Set<int> _cancelingRequestIds = {};
+  bool _leavingTeam = false;
+
+  Future<void> _refresh() async {
+    ref.invalidate(memberMeProvider);
+    ref.invalidate(myTeamJoinRequestsProvider);
+    await Future.wait<Object?>([
+      ref.read(memberMeProvider.future),
+      ref.read(myTeamJoinRequestsProvider.future),
+    ]);
+  }
+
+  Future<void> _cancelRequest(MyTeamJoinRequest request) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('가입 신청 취소'),
+        content: Text('${request.teamName} 가입 신청을 취소할까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('돌아가기'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('신청 취소'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _cancelingRequestIds.add(request.teamJoinRequestId));
+    try {
+      await ref
+          .read(memberRepositoryProvider)
+          .cancelMyTeamJoinRequest(request.teamJoinRequestId);
+      if (!mounted) return;
+      ref.invalidate(myTeamJoinRequestsProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${request.teamName} 가입 신청을 취소했습니다.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_errorMessage(error, '가입 신청을 취소하지 못했습니다.')),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(
+          () => _cancelingRequestIds.remove(request.teamJoinRequestId),
+        );
+      }
+    }
+  }
+
+  Future<void> _leaveTeam(MemberMe member) async {
+    final teamId = member.teamId;
+    if (teamId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('팀 탈퇴'),
+        content: Text('${member.teamName} 팀에서 탈퇴할까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('팀 탈퇴'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _leavingTeam = true);
+    try {
+      final result = await ref.read(memberRepositoryProvider).leaveTeam();
+      if (!mounted) return;
+      ref.invalidate(memberMeProvider);
+      ref.invalidate(memberRankingsProvider);
+      ref.invalidate(teamsProvider);
+      ref.invalidate(teamDetailProvider(teamId));
+      ref.invalidate(teamMembersProvider(teamId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${result.teamName} 팀에서 탈퇴했습니다.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_errorMessage(error, '팀에서 탈퇴하지 못했습니다.')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _leavingTeam = false);
+    }
+  }
+
+  Future<void> _openTeam(int teamId) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => TeamDetailScreen(teamId: teamId)),
+    );
+    if (mounted) await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final member = ref.watch(memberMeProvider);
+    final joinRequests = ref.watch(myTeamJoinRequestsProvider);
+
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: member.when(
+        loading: () => const _LoadingView(),
+        error: (error, _) => _ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(memberMeProvider),
+        ),
+        data: (item) => ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          children: [
+            _ProfileCard(member: item),
+            const SizedBox(height: 14),
+            _TeamCard(
+              member: item,
+              leaving: _leavingTeam,
+              onOpenTeam: item.teamId == null
+                  ? null
+                  : () => _openTeam(item.teamId!),
+              onLeave: item.hasTeam && !item.isTeamLeader
+                  ? () => _leaveTeam(item)
+                  : null,
+            ),
+            const SizedBox(height: 24),
+            Row(
               children: [
-                CircleAvatar(
-                  radius: 38,
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Icon(
-                    Icons.person,
-                    size: 42,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 14),
                 Text(
-                  session.username,
+                  '내 가입 신청',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text('회원 번호 ${session.memberId}'),
-                const SizedBox(height: 20),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        '${session.memberRating}',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 28,
-                        ),
-                      ),
-                      const Text('MEMBER RATING'),
-                    ],
-                  ),
+                const Spacer(),
+                joinRequests.when(
+                  data: (items) => Text('${items.length}건'),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 10),
+            joinRequests.when(
+              loading: () => const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              error: (error, _) => _InlineError(
+                message: error.toString(),
+                onRetry: () => ref.invalidate(myTeamJoinRequestsProvider),
+              ),
+              data: (items) => items.isEmpty
+                  ? const _EmptyRequestsCard()
+                  : Column(
+                      children: items
+                          .map(
+                            (request) => Padding(
+                              padding: const EdgeInsets.only(bottom: 9),
+                              child: _JoinRequestCard(
+                                request: request,
+                                canceling: _cancelingRequestIds.contains(
+                                  request.teamJoinRequestId,
+                                ),
+                                onOpenTeam: () => _openTeam(request.teamId),
+                                onCancel: () => _cancelRequest(request),
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+            ),
+            const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: () => _confirmLogout(context),
+              icon: const Icon(Icons.logout),
+              label: const Text('로그아웃'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: () => _confirmLogout(context, ref),
-          icon: const Icon(Icons.logout),
-          label: const Text('로그아웃'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(52),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -98,4 +247,365 @@ class ProfileScreen extends ConsumerWidget {
       await ref.read(authControllerProvider.notifier).logout();
     }
   }
+
+  String _errorMessage(Object error, String fallback) {
+    return error is ApiException ? error.message : fallback;
+  }
+}
+
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({required this.member});
+
+  final MemberMe member;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 38,
+              backgroundColor: colors.primaryContainer,
+              child: Icon(Icons.person, size: 42, color: colors.primary),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              member.username,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '회원 번호 ${member.memberId} · '
+              '가입 ${_formatDate(member.createdAt)}',
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.primaryContainer,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    '${member.memberRating}',
+                    style: TextStyle(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 28,
+                    ),
+                  ),
+                  const Text('MEMBER RATING'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamCard extends StatelessWidget {
+  const _TeamCard({
+    required this.member,
+    required this.leaving,
+    required this.onOpenTeam,
+    required this.onLeave,
+  });
+
+  final MemberMe member;
+  final bool leaving;
+  final VoidCallback? onOpenTeam;
+  final VoidCallback? onLeave;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    if (!member.hasTeam) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Icon(Icons.shield_outlined, size: 34, color: colors.primary),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '소속 팀 없음',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    SizedBox(height: 3),
+                    Text('팀 탭에서 팀을 만들거나 가입을 신청할 수 있습니다.'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: colors.primaryContainer,
+                  child: const Icon(Icons.shield_outlined),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        member.teamName!,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        '${member.isTeamLeader ? '팀장' : '팀원'} · '
+                        '가입 ${_formatDate(member.joinedAt)}',
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: onOpenTeam,
+                  tooltip: '팀 상세 보기',
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (member.isTeamLeader)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  '팀장은 팀을 탈퇴할 수 없습니다.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              )
+            else
+              OutlinedButton.icon(
+                onPressed: leaving ? null : onLeave,
+                icon: leaving
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.exit_to_app),
+                label: const Text('팀 탈퇴'),
+                style: OutlinedButton.styleFrom(foregroundColor: colors.error),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JoinRequestCard extends StatelessWidget {
+  const _JoinRequestCard({
+    required this.request,
+    required this.canceling,
+    required this.onOpenTeam,
+    required this.onCancel,
+  });
+
+  final MyTeamJoinRequest request;
+  final bool canceling;
+  final VoidCallback onOpenTeam;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const CircleAvatar(child: Icon(Icons.schedule_send_outlined)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        request.teamName,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      Text('${_formatDate(request.createdAt)} 신청'),
+                    ],
+                  ),
+                ),
+                const _PendingChip(),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: onOpenTeam,
+                    child: const Text('팀 보기'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: canceling ? null : onCancel,
+                    child: canceling
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('신청 취소'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PendingChip extends StatelessWidget {
+  const _PendingChip();
+
+  @override
+  Widget build(BuildContext context) {
+    const color = Color(0xFFF08C00);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Text(
+        '대기',
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyRequestsCard extends StatelessWidget {
+  const _EmptyRequestsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Card(
+      child: Padding(
+        padding: EdgeInsets.all(22),
+        child: Row(
+          children: [
+            Icon(Icons.inbox_outlined, size: 32),
+            SizedBox(width: 14),
+            Expanded(child: Text('대기 중인 팀 가입 신청이 없습니다.')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 10),
+            TextButton(onPressed: onRetry, child: const Text('다시 시도')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadingView extends StatelessWidget {
+  const _LoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: const [
+        SizedBox(height: 220),
+        Center(child: CircularProgressIndicator()),
+      ],
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(32),
+      children: [
+        const SizedBox(height: 120),
+        const Icon(Icons.cloud_off_outlined, size: 54),
+        const SizedBox(height: 16),
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 18),
+        Center(
+          child: FilledButton.tonal(
+            onPressed: onRetry,
+            child: const Text('다시 시도'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _formatDate(DateTime? value) {
+  if (value == null) return '-';
+  return '${value.year}.${value.month.toString().padLeft(2, '0')}.${value.day.toString().padLeft(2, '0')}';
 }

@@ -33,4 +33,18 @@ void main() {
 
     expect(member.isLeader, isTrue);
   });
+
+  test('현재 백엔드의 가입 신청 상태값을 변환한다', () {
+    final request = TeamJoinRequest.fromJson({
+      'teamJoinRequestId': 8,
+      'teamId': 1,
+      'teamName': 'FootMasters',
+      'memberId': 11,
+      'username': 'player',
+      'status': 'ACCEPTED',
+      'createdAt': '2026-07-10T10:30:00',
+    });
+
+    expect(request.status, 'ACCEPTED');
+  });
 }

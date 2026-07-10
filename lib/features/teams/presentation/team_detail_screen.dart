@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../../members/data/member_repository.dart';
 import '../data/team_models.dart';
 import '../data/team_repository.dart';
 import 'team_join_requests_screen.dart';
@@ -22,6 +23,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
   Future<void> _refresh() async {
     ref.invalidate(teamDetailProvider(widget.teamId));
     ref.invalidate(teamMembersProvider(widget.teamId));
+    ref.invalidate(myTeamJoinRequestsProvider);
     await Future.wait([
       ref.read(teamDetailProvider(widget.teamId).future),
       ref.read(teamMembersProvider(widget.teamId).future),
@@ -33,6 +35,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
     try {
       await ref.read(teamRepositoryProvider).requestJoin(widget.teamId);
       if (!mounted) return;
+      ref.invalidate(myTeamJoinRequestsProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('팀 가입 신청을 보냈습니다.')),
       );
@@ -53,6 +56,8 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
   Widget build(BuildContext context) {
     final detail = ref.watch(teamDetailProvider(widget.teamId));
     final members = ref.watch(teamMembersProvider(widget.teamId));
+    final myProfile = ref.watch(memberMeProvider);
+    final myJoinRequests = ref.watch(myTeamJoinRequestsProvider);
     final memberId = ref.watch(authControllerProvider).session!.memberId;
 
     return Scaffold(
@@ -76,6 +81,19 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
               final isMember = teamMembers.any(
                 (member) => member.memberId == memberId,
               );
+              final belongsToAnotherTeam = myProfile.when(
+                data: (member) =>
+                    member.hasTeam && member.teamId != widget.teamId,
+                loading: () => false,
+                error: (_, _) => false,
+              );
+              final hasPendingRequest = myJoinRequests.when(
+                data: (requests) => requests.any(
+                  (request) => request.teamId == widget.teamId,
+                ),
+                loading: () => false,
+                error: (_, _) => false,
+              );
 
               return ListView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -95,7 +113,13 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                       icon: const Icon(Icons.mark_email_unread_outlined),
                       label: const Text('가입 신청 관리'),
                     )
-                  else if (!isMember)
+                  else if (isMember)
+                    const _MembershipBanner()
+                  else if (belongsToAnotherTeam)
+                    const _OtherTeamBanner()
+                  else if (hasPendingRequest)
+                    const _PendingJoinBanner()
+                  else
                     FilledButton.icon(
                       onPressed: _joining ? null : _requestJoin,
                       icon: _joining
@@ -105,9 +129,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                             )
                           : const Icon(Icons.person_add_alt_1),
                       label: const Text('팀 가입 신청'),
-                    )
-                  else
-                    const _MembershipBanner(),
+                    ),
                   const SizedBox(height: 24),
                   Row(
                     children: [
@@ -294,6 +316,60 @@ class _MembershipBanner extends StatelessWidget {
           Icon(Icons.verified_outlined),
           SizedBox(width: 10),
           Text('현재 소속된 팀입니다.', style: TextStyle(fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingJoinBanner extends StatelessWidget {
+  const _PendingJoinBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3BF),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.schedule_send_outlined),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '가입 승인을 기다리고 있습니다.',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OtherTeamBanner extends StatelessWidget {
+  const _OtherTeamBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '다른 팀에 소속되어 있어 가입을 신청할 수 없습니다.',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );

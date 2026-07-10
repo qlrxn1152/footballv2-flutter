@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/status_banner.dart';
+import '../../members/data/member_repository.dart';
 import '../data/team_repository.dart';
 
 class CreateTeamScreen extends ConsumerStatefulWidget {
@@ -37,8 +38,11 @@ class _CreateTeamScreenState extends ConsumerState<CreateTeamScreen> {
       final teamId = await ref
           .read(teamRepositoryProvider)
           .createTeam(_nameController.text.trim());
+      if (!mounted) return;
       ref.invalidate(teamsProvider);
-      if (mounted) Navigator.of(context).pop(teamId);
+      ref.invalidate(memberRankingsProvider);
+      ref.invalidate(memberMeProvider);
+      Navigator.of(context).pop(teamId);
     } catch (error) {
       if (!mounted) return;
       setState(() {

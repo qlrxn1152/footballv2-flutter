@@ -24,23 +24,37 @@ class TeamListScreen extends ConsumerWidget {
           message: error.toString(),
           onRetry: () => ref.invalidate(teamsProvider),
         ),
-        data: (items) => ListView.separated(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          itemCount: items.length + 1,
-          separatorBuilder: (_, _) => const SizedBox(height: 10),
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return _TeamListHeader(
-                onCreate: () => _createTeam(context, ref),
-              );
-            }
-            return _TeamCard(
-              rank: index,
-              team: items[index - 1],
-              onTap: () => _openTeam(context, items[index - 1].teamId),
-            );
-          },
-        ),
+        data: (items) => items.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                children: [
+                  _TeamListHeader(onCreate: () => _createTeam(context, ref)),
+                  const SizedBox(height: 18),
+                  const _EmptyTeamCard(),
+                ],
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                itemCount: items.length + 1,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return _TeamListHeader(
+                      onCreate: () => _createTeam(context, ref),
+                    );
+                  }
+                  return _TeamCard(
+                    rank: index,
+                    team: items[index - 1],
+                    onTap: () => _openTeam(
+                      context,
+                      ref,
+                      items[index - 1].teamId,
+                    ),
+                  );
+                },
+              ),
       ),
     );
   }
@@ -51,13 +65,18 @@ class TeamListScreen extends ConsumerWidget {
     );
     if (teamId == null || !context.mounted) return;
     ref.invalidate(teamsProvider);
-    await _openTeam(context, teamId);
+    await _openTeam(context, ref, teamId);
   }
 
-  Future<void> _openTeam(BuildContext context, int teamId) {
-    return Navigator.of(context).push<void>(
+  Future<void> _openTeam(
+    BuildContext context,
+    WidgetRef ref,
+    int teamId,
+  ) async {
+    await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => TeamDetailScreen(teamId: teamId)),
     );
+    if (context.mounted) ref.invalidate(teamsProvider);
   }
 }
 
@@ -195,6 +214,31 @@ class _LoadingView extends StatelessWidget {
         SizedBox(height: 220),
         Center(child: CircularProgressIndicator()),
       ],
+    );
+  }
+}
+
+class _EmptyTeamCard extends StatelessWidget {
+  const _EmptyTeamCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Card(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 22, vertical: 34),
+        child: Column(
+          children: [
+            Icon(Icons.groups_outlined, size: 52),
+            SizedBox(height: 14),
+            Text(
+              '등록된 팀이 없습니다.',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+            SizedBox(height: 5),
+            Text('첫 번째 팀을 만들어 보세요.'),
+          ],
+        ),
+      ),
     );
   }
 }

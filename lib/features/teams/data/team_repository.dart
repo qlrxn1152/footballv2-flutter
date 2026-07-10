@@ -101,22 +101,24 @@ final teamRepositoryProvider = Provider<TeamRepository>(
   (ref) => TeamRepository(ref.watch(apiClientProvider)),
 );
 
-final teamsProvider = FutureProvider<List<TeamSummary>>(
+final teamsProvider = FutureProvider.autoDispose<List<TeamSummary>>(
   (ref) => ref.watch(teamRepositoryProvider).fetchTeams(),
 );
 
-final teamDetailProvider = FutureProvider.family<TeamDetail, int>(
+final teamDetailProvider = FutureProvider.autoDispose.family<TeamDetail, int>(
   (ref, teamId) => ref.watch(teamRepositoryProvider).fetchTeamDetail(teamId),
 );
 
-final teamMembersProvider = FutureProvider.family<List<TeamMember>, int>(
-  (ref, teamId) => ref.watch(teamRepositoryProvider).fetchTeamMembers(teamId),
-);
+final teamMembersProvider =
+    FutureProvider.autoDispose.family<List<TeamMember>, int>(
+      (ref, teamId) =>
+          ref.watch(teamRepositoryProvider).fetchTeamMembers(teamId),
+    );
 
 typedef JoinRequestQuery = ({int teamId, String status});
 
-final joinRequestsProvider =
-    FutureProvider.family<List<TeamJoinRequest>, JoinRequestQuery>(
+final joinRequestsProvider = FutureProvider.autoDispose
+    .family<List<TeamJoinRequest>, JoinRequestQuery>(
       (ref, query) => ref
           .watch(teamRepositoryProvider)
           .fetchJoinRequests(teamId: query.teamId, status: query.status),
