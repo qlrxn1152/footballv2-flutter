@@ -8,6 +8,7 @@ import '../../teams/data/team_repository.dart';
 import '../data/team_match.dart';
 import '../data/team_match_repository.dart';
 import 'team_match_create_screen.dart';
+import 'team_match_result_screen.dart';
 
 enum _MatchStatusTab { pending, matched, completed }
 
@@ -136,6 +137,29 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
     }
   }
 
+  Future<void> _openResultRegistration(TeamMatchSummary match) async {
+    final result = await Navigator.of(context).push<TeamMatchResult>(
+      MaterialPageRoute(builder: (_) => TeamMatchResultScreen(match: match)),
+    );
+    if (result == null || !mounted) return;
+
+    ref.invalidate(teamMatchesProvider('MATCHED'));
+    ref.invalidate(teamMatchesProvider('COMPLETED'));
+    setState(() => _status = _MatchStatusTab.completed);
+
+    final outcome = result.isDraw
+        ? '무승부'
+        : '${result.winnerTeamName} 승리';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${result.homeTeamName} ${result.homeScore} : ${result.awayScore} '
+          '${result.awayTeamName} · $outcome',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final member = ref.watch(memberMeProvider);
@@ -211,6 +235,7 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
             acceptingMatchIds: _acceptingMatchIds,
             onRefresh: () => _refreshStatus(_status),
             onAccept: _acceptMatch,
+            onEnterResult: _openResultRegistration,
           ),
         ),
       ],
@@ -335,6 +360,7 @@ class _MatchesView extends StatelessWidget {
     required this.acceptingMatchIds,
     required this.onRefresh,
     required this.onAccept,
+    required this.onEnterResult,
   });
 
   final _MatchStatusTab status;
@@ -345,6 +371,7 @@ class _MatchesView extends StatelessWidget {
   final Set<int> acceptingMatchIds;
   final Future<void> Function() onRefresh;
   final Future<void> Function(TeamMatchSummary, MemberMe) onAccept;
+  final Future<void> Function(TeamMatchSummary) onEnterResult;
 
   @override
   Widget build(BuildContext context) {
@@ -375,7 +402,16 @@ class _MatchesView extends StatelessWidget {
                       onAccept: onAccept,
                     );
                   }
-                  return _PairedMatchCard(match: match);
+                  final canEnterResult =
+                      status == _MatchStatusTab.matched &&
+                      member?.isTeamLeader == true &&
+                      member?.teamId == match.homeTeamId;
+                  return _PairedMatchCard(
+                    match: match,
+                    onEnterResult: canEnterResult
+                        ? () => onEnterResult(match)
+                        : null,
+                  );
                 },
               ),
       ),
@@ -490,9 +526,10 @@ class _PendingMatchCard extends StatelessWidget {
 }
 
 class _PairedMatchCard extends StatelessWidget {
-  const _PairedMatchCard({required this.match});
+  const _PairedMatchCard({required this.match, this.onEnterResult});
 
   final TeamMatchSummary match;
+  final VoidCallback? onEnterResult;
 
   @override
   Widget build(BuildContext context) {
@@ -546,6 +583,17 @@ class _PairedMatchCard extends StatelessWidget {
                 Text(_formatDateTime(match.createdAt)),
               ],
             ),
+            if (onEnterResult != null) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onEnterResult,
+                  icon: const Icon(Icons.sports_score_outlined),
+                  label: const Text('결과 입력'),
+                ),
+              ),
+            ],
           ],
         ),
       ),

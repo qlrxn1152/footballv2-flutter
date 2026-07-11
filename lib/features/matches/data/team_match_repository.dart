@@ -42,6 +42,20 @@ class TeamMatchRepository {
       return TeamMatchAcceptResult.fromJson(jsonMap(response.data));
     });
   }
+
+  Future<TeamMatchResult> registerResult({
+    required int teamMatchId,
+    required int homeScore,
+    required int awayScore,
+  }) {
+    return runApi(() async {
+      final response = await _apiClient.dio.post<Object?>(
+        '/api/team-matches/$teamMatchId/result',
+        data: {'homeScore': homeScore, 'awayScore': awayScore},
+      );
+      return TeamMatchResult.fromJson(jsonMap(response.data));
+    });
+  }
 }
 
 final teamMatchRepositoryProvider = Provider<TeamMatchRepository>(

@@ -105,3 +105,47 @@ class TeamMatchAcceptResult {
     );
   }
 }
+
+class TeamMatchResult {
+  const TeamMatchResult({
+    required this.teamMatchId,
+    required this.homeTeamId,
+    required this.homeTeamName,
+    required this.homeScore,
+    required this.awayTeamId,
+    required this.awayTeamName,
+    required this.awayScore,
+    required this.winnerTeamId,
+    required this.winnerTeamName,
+    required this.status,
+  });
+
+  final int teamMatchId;
+  final int homeTeamId;
+  final String homeTeamName;
+  final int homeScore;
+  final int awayTeamId;
+  final String awayTeamName;
+  final int awayScore;
+  final int? winnerTeamId;
+  final String? winnerTeamName;
+  final String status;
+
+  bool get isDraw => winnerTeamId == null;
+  bool get isCompleted => status == 'COMPLETED';
+
+  factory TeamMatchResult.fromJson(Map<String, dynamic> json) {
+    return TeamMatchResult(
+      teamMatchId: (json['teamMatchId'] as num).toInt(),
+      homeTeamId: (json['homeTeamId'] as num).toInt(),
+      homeTeamName: json['homeTeamName'] as String,
+      homeScore: (json['homeScore'] as num).toInt(),
+      awayTeamId: (json['awayTeamId'] as num).toInt(),
+      awayTeamName: json['awayTeamName'] as String,
+      awayScore: (json['awayScore'] as num).toInt(),
+      winnerTeamId: (json['winnerTeamId'] as num?)?.toInt(),
+      winnerTeamName: json['winnerTeamName'] as String?,
+      status: json['status'] as String,
+    );
+  }
+}

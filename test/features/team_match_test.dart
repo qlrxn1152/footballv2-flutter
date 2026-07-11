@@ -76,4 +76,43 @@ void main() {
     expect(result.awayTeamName, 'teamB');
     expect(result.status, 'MATCHED');
   });
+
+  test('매치 결과 등록 응답을 변환한다', () {
+    final result = TeamMatchResult.fromJson({
+      'teamMatchId': 22,
+      'homeTeamId': 3,
+      'homeTeamName': 'teamA',
+      'homeScore': 3,
+      'awayTeamId': 4,
+      'awayTeamName': 'teamB',
+      'awayScore': 1,
+      'winnerTeamId': 3,
+      'winnerTeamName': 'teamA',
+      'status': 'COMPLETED',
+    });
+
+    expect(result.homeScore, 3);
+    expect(result.awayScore, 1);
+    expect(result.winnerTeamName, 'teamA');
+    expect(result.isDraw, isFalse);
+    expect(result.isCompleted, isTrue);
+  });
+
+  test('무승부 결과는 승리 팀이 없다', () {
+    final result = TeamMatchResult.fromJson({
+      'teamMatchId': 22,
+      'homeTeamId': 3,
+      'homeTeamName': 'teamA',
+      'homeScore': 2,
+      'awayTeamId': 4,
+      'awayTeamName': 'teamB',
+      'awayScore': 2,
+      'winnerTeamId': null,
+      'winnerTeamName': null,
+      'status': 'COMPLETED',
+    });
+
+    expect(result.isDraw, isTrue);
+    expect(result.winnerTeamName, isNull);
+  });
 }
