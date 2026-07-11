@@ -19,18 +19,61 @@ void main() {
   });
 
   test('PENDING 매치 목록 응답을 변환한다', () {
-    final match = PendingTeamMatch.fromJson({
+    final match = TeamMatchSummary.fromJson({
       'teamMatchId': 21,
       'homeTeamId': 3,
       'homeTeamName': 'teamA',
       'homeTeamRating': 1500,
+      'awayTeamId': null,
+      'awayTeamName': null,
+      'awayTeamRating': null,
       'status': 'PENDING',
       'createdAt': '2026-07-11T14:30:00',
     });
 
     expect(match.teamMatchId, 21);
     expect(match.homeTeamName, 'teamA');
+    expect(match.awayTeamId, isNull);
     expect(match.status, 'PENDING');
+    expect(match.isPending, isTrue);
     expect(match.createdAt, DateTime(2026, 7, 11, 14, 30));
+  });
+
+  test('MATCHED 매치 목록 응답을 변환한다', () {
+    final match = TeamMatchSummary.fromJson({
+      'teamMatchId': 22,
+      'homeTeamId': 3,
+      'homeTeamName': 'teamA',
+      'homeTeamRating': 1500,
+      'awayTeamId': 4,
+      'awayTeamName': 'teamB',
+      'awayTeamRating': 1510,
+      'status': 'MATCHED',
+      'createdAt': '2026-07-11T15:00:00',
+    });
+
+    expect(match.awayTeamId, 4);
+    expect(match.awayTeamName, 'teamB');
+    expect(match.awayTeamRating, 1510);
+    expect(match.isMatched, isTrue);
+    expect(match.includesTeam(4), isTrue);
+  });
+
+  test('매치 수락 응답을 변환한다', () {
+    final result = TeamMatchAcceptResult.fromJson({
+      'teamMatchId': 22,
+      'homeTeamId': 3,
+      'homeTeamName': 'teamA',
+      'homeTeamRating': 1500,
+      'awayTeamId': 4,
+      'awayTeamName': 'teamB',
+      'awayTeamRating': 1510,
+      'status': 'MATCHED',
+    });
+
+    expect(result.teamMatchId, 22);
+    expect(result.homeTeamName, 'teamA');
+    expect(result.awayTeamName, 'teamB');
+    expect(result.status, 'MATCHED');
   });
 }

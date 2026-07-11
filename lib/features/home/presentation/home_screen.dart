@@ -36,7 +36,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref.invalidate(teamsProvider);
         break;
       case 2:
-        ref.invalidate(pendingTeamMatchesProvider);
+        for (final status in const ['PENDING', 'MATCHED', 'COMPLETED']) {
+          ref.invalidate(teamMatchesProvider(status));
+        }
         ref.invalidate(memberMeProvider);
         break;
       case 3:

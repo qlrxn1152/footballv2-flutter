@@ -14,7 +14,8 @@ FootballV2 Spring Boot REST API를 사용하는 Android Flutter 앱입니다.
 - 팀 리더의 팀 이름 변경
 - 팀장만 남은 팀의 해체
 - 팀 리더의 대기 매치 등록
-- PENDING 매치 최신순 조회와 상태별 매치 탭
+- PENDING·MATCHED·COMPLETED 매치 최신순 조회와 상태별 매치 탭
+- 다른 팀 리더의 PENDING 매치 수락 및 매칭 성사 처리
 - 팀 가입 신청
 - 마이페이지와 현재 소속 팀 조회
 - 내 팀 가입 신청 조회·취소
@@ -63,6 +64,8 @@ GET  /api/members/ranking
 GET  /api/members/me
 GET  /api/members/me/team-join-requests
 GET  /api/teams
+GET  /api/team-matches?status=PENDING
+PATCH /api/team-matches/{teamMatchId}/accept
 ```
 
 ## 4. Android 앱 실행
@@ -95,7 +98,8 @@ lib/
     ├── auth/         # 회원가입·로그인
     ├── home/         # 하단 내비게이션·내 정보
     ├── members/      # 선수 랭킹
-    └── teams/        # 팀 목록·상세·가입 기능
+    ├── teams/        # 팀 목록·상세·가입 기능
+    └── matches/      # 매치 등록·상태별 조회·수락
 ```
 
 UI는 `presentation`, 서버 호출과 JSON 변환은 `data`에 둡니다. 화면에서 Dio를 직접 호출하지 않도록 분리했습니다.
@@ -120,5 +124,4 @@ flutter test
 
 ## 아직 연결하지 않은 기능
 
-- 매치: 백엔드 매치 API 구현 후 추가
 - 토큰 갱신: 현재 백엔드에 refresh token API가 없음

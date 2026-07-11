@@ -18,18 +18,28 @@ class TeamMatchRepository {
     });
   }
 
-  Future<List<PendingTeamMatch>> fetchPendingMatches() {
+  Future<List<TeamMatchSummary>> fetchMatches(String status) {
     return runApi(() async {
       final response = await _apiClient.dio.get<Object?>(
-        '/api/team-matches/pending',
+        '/api/team-matches',
+        queryParameters: {'status': status},
       );
       final data = response.data;
       if (data is! List) {
-        throw const ApiException('대기 매치 목록 응답 형식이 올바르지 않습니다.');
+        throw const ApiException('매치 목록 응답 형식이 올바르지 않습니다.');
       }
       return data
-          .map((item) => PendingTeamMatch.fromJson(jsonMap(item)))
+          .map((item) => TeamMatchSummary.fromJson(jsonMap(item)))
           .toList(growable: false);
+    });
+  }
+
+  Future<TeamMatchAcceptResult> acceptMatch(int teamMatchId) {
+    return runApi(() async {
+      final response = await _apiClient.dio.patch<Object?>(
+        '/api/team-matches/$teamMatchId/accept',
+      );
+      return TeamMatchAcceptResult.fromJson(jsonMap(response.data));
     });
   }
 }
@@ -38,7 +48,8 @@ final teamMatchRepositoryProvider = Provider<TeamMatchRepository>(
   (ref) => TeamMatchRepository(ref.watch(apiClientProvider)),
 );
 
-final pendingTeamMatchesProvider =
-    FutureProvider.autoDispose<List<PendingTeamMatch>>(
-      (ref) => ref.watch(teamMatchRepositoryProvider).fetchPendingMatches(),
+final teamMatchesProvider = FutureProvider.autoDispose
+    .family<List<TeamMatchSummary>, String>(
+      (ref, status) =>
+          ref.watch(teamMatchRepositoryProvider).fetchMatches(status),
     );

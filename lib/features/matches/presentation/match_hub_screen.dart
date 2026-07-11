@@ -11,6 +11,14 @@ import 'team_match_create_screen.dart';
 
 enum _MatchStatusTab { pending, matched, completed }
 
+extension on _MatchStatusTab {
+  String get apiValue => switch (this) {
+    _MatchStatusTab.pending => 'PENDING',
+    _MatchStatusTab.matched => 'MATCHED',
+    _MatchStatusTab.completed => 'COMPLETED',
+  };
+}
+
 class MatchHubScreen extends ConsumerStatefulWidget {
   const MatchHubScreen({super.key});
 
@@ -21,10 +29,12 @@ class MatchHubScreen extends ConsumerStatefulWidget {
 class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
   _MatchStatusTab _status = _MatchStatusTab.pending;
   bool _openingRegistration = false;
+  final Set<int> _acceptingMatchIds = {};
 
-  Future<void> _refreshPending() async {
-    ref.invalidate(pendingTeamMatchesProvider);
-    await ref.read(pendingTeamMatchesProvider.future);
+  Future<void> _refreshStatus(_MatchStatusTab status) async {
+    final provider = teamMatchesProvider(status.apiValue);
+    ref.invalidate(provider);
+    await ref.read(provider.future);
   }
 
   Future<void> _openRegistration() async {
@@ -49,7 +59,7 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
       );
       if (result == null || !mounted) return;
 
-      ref.invalidate(pendingTeamMatchesProvider);
+      ref.invalidate(teamMatchesProvider('PENDING'));
       setState(() => _status = _MatchStatusTab.pending);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('매치를 등록했습니다. 상대 팀을 기다립니다.')),
@@ -67,12 +77,89 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
     }
   }
 
+  Future<void> _acceptMatch(
+    TeamMatchSummary match,
+    MemberMe member,
+  ) async {
+    final awayTeamName = member.teamName ?? '내 팀';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('매치 수락'),
+        content: Text(
+          '${match.homeTeamName}의 매치를 수락할까요?\n\n'
+          '$awayTeamName 팀이 원정 팀으로 참가하며, 수락하면 MATCHED 상태가 됩니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('수락하기'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _acceptingMatchIds.add(match.teamMatchId));
+    try {
+      final result = await ref
+          .read(teamMatchRepositoryProvider)
+          .acceptMatch(match.teamMatchId);
+      if (!mounted) return;
+
+      ref.invalidate(teamMatchesProvider('PENDING'));
+      ref.invalidate(teamMatchesProvider('MATCHED'));
+      setState(() => _status = _MatchStatusTab.matched);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${result.homeTeamName} vs ${result.awayTeamName} 매칭이 성사됐습니다.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is ApiException
+          ? error.message
+          : '매치를 수락하지 못했습니다.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _acceptingMatchIds.remove(match.teamMatchId));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final member = ref.watch(memberMeProvider);
-    final pendingMatches = ref.watch(pendingTeamMatchesProvider);
+    final pendingMatches = ref.watch(teamMatchesProvider('PENDING'));
+    final matchedMatches = ref.watch(teamMatchesProvider('MATCHED'));
+    final completedMatches = ref.watch(teamMatchesProvider('COMPLETED'));
 
-    final hasOwnPendingMatch = _hasOwnPendingMatch(member, pendingMatches);
+    final memberValue = member.when(
+      data: (item) => item,
+      loading: () => null,
+      error: (_, _) => null,
+    );
+    final teamId = memberValue?.teamId;
+    final hasPendingMatch = _containsTeam(pendingMatches, teamId);
+    final hasMatchedMatch = _containsTeam(matchedMatches, teamId);
+    final hasActiveMatch = hasPendingMatch || hasMatchedMatch;
+    final activeMatchesResolved =
+        _hasData(pendingMatches) && _hasData(matchedMatches);
+
+    final selectedMatches = switch (_status) {
+      _MatchStatusTab.pending => pendingMatches,
+      _MatchStatusTab.matched => matchedMatches,
+      _MatchStatusTab.completed => completedMatches,
+    };
 
     return Column(
       children: [
@@ -80,7 +167,9 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
           child: _MatchHeader(
             member: member,
-            hasOwnPendingMatch: hasOwnPendingMatch,
+            hasPendingMatch: hasPendingMatch,
+            hasMatchedMatch: hasMatchedMatch,
+            activeMatchesResolved: activeMatchesResolved,
             openingRegistration: _openingRegistration,
             onRegister: _openRegistration,
           ),
@@ -113,37 +202,36 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
           ),
         ),
         Expanded(
-          child: switch (_status) {
-            _MatchStatusTab.pending => _PendingMatchesView(
-                matches: pendingMatches,
-                onRefresh: _refreshPending,
-              ),
-            _MatchStatusTab.matched => const _UnavailableStatusView(
-                status: 'MATCHED',
-                icon: Icons.handshake_outlined,
-              ),
-            _MatchStatusTab.completed => const _UnavailableStatusView(
-                status: 'COMPLETED',
-                icon: Icons.emoji_events_outlined,
-              ),
-          },
+          child: _MatchesView(
+            status: _status,
+            matches: selectedMatches,
+            member: memberValue,
+            memberTeamHasActiveMatch: hasActiveMatch,
+            memberTeamActivityResolved: activeMatchesResolved,
+            acceptingMatchIds: _acceptingMatchIds,
+            onRefresh: () => _refreshStatus(_status),
+            onAccept: _acceptMatch,
+          ),
         ),
       ],
     );
   }
 
-  bool _hasOwnPendingMatch(
-    AsyncValue<MemberMe> member,
-    AsyncValue<List<PendingTeamMatch>> matches,
+  bool _containsTeam(
+    AsyncValue<List<TeamMatchSummary>> matches,
+    int? teamId,
   ) {
-    final teamId = member.when(
-      data: (item) => item.teamId,
-      loading: () => null,
-      error: (_, _) => null,
-    );
     if (teamId == null) return false;
     return matches.when(
-      data: (items) => items.any((match) => match.homeTeamId == teamId),
+      data: (items) => items.any((match) => match.includesTeam(teamId)),
+      loading: () => false,
+      error: (_, _) => false,
+    );
+  }
+
+  bool _hasData(AsyncValue<List<TeamMatchSummary>> matches) {
+    return matches.when(
+      data: (_) => true,
       loading: () => false,
       error: (_, _) => false,
     );
@@ -153,13 +241,17 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
 class _MatchHeader extends StatelessWidget {
   const _MatchHeader({
     required this.member,
-    required this.hasOwnPendingMatch,
+    required this.hasPendingMatch,
+    required this.hasMatchedMatch,
+    required this.activeMatchesResolved,
     required this.openingRegistration,
     required this.onRegister,
   });
 
   final AsyncValue<MemberMe> member;
-  final bool hasOwnPendingMatch;
+  final bool hasPendingMatch;
+  final bool hasMatchedMatch;
+  final bool activeMatchesResolved;
   final bool openingRegistration;
   final VoidCallback onRegister;
 
@@ -169,7 +261,9 @@ class _MatchHeader extends StatelessWidget {
       data: (item) {
         if (!item.hasTeam) return ('팀 가입 후 등록 가능', false);
         if (!item.isTeamLeader) return ('팀장만 등록 가능', false);
-        if (hasOwnPendingMatch) return ('등록한 매치 대기 중', false);
+        if (!activeMatchesResolved) return ('매치 확인 중', false);
+        if (hasPendingMatch) return ('등록한 매치 대기 중', false);
+        if (hasMatchedMatch) return ('진행 중인 매치 있음', false);
         return ('새 매치 등록', true);
       },
       loading: () => ('내 팀 확인 중', false),
@@ -206,7 +300,7 @@ class _MatchHeader extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '매치를 확인하고 새로운 상대를 기다리세요.',
+                      '매치를 확인하고 새로운 상대를 만나보세요.',
                       style: TextStyle(color: Color(0xFFD3F9D8)),
                     ),
                   ],
@@ -231,11 +325,26 @@ class _MatchHeader extends StatelessWidget {
   }
 }
 
-class _PendingMatchesView extends StatelessWidget {
-  const _PendingMatchesView({required this.matches, required this.onRefresh});
+class _MatchesView extends StatelessWidget {
+  const _MatchesView({
+    required this.status,
+    required this.matches,
+    required this.member,
+    required this.memberTeamHasActiveMatch,
+    required this.memberTeamActivityResolved,
+    required this.acceptingMatchIds,
+    required this.onRefresh,
+    required this.onAccept,
+  });
 
-  final AsyncValue<List<PendingTeamMatch>> matches;
+  final _MatchStatusTab status;
+  final AsyncValue<List<TeamMatchSummary>> matches;
+  final MemberMe? member;
+  final bool memberTeamHasActiveMatch;
+  final bool memberTeamActivityResolved;
+  final Set<int> acceptingMatchIds;
   final Future<void> Function() onRefresh;
+  final Future<void> Function(TeamMatchSummary, MemberMe) onAccept;
 
   @override
   Widget build(BuildContext context) {
@@ -244,11 +353,11 @@ class _PendingMatchesView extends StatelessWidget {
       child: matches.when(
         loading: () => const _LoadingList(),
         error: (error, _) => _MatchErrorView(
-          message: error.toString(),
+          message: error is ApiException ? error.message : error.toString(),
           onRetry: onRefresh,
         ),
         data: (items) => items.isEmpty
-            ? const _EmptyMatchesView()
+            ? _EmptyMatchesView(status: status)
             : ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
@@ -256,7 +365,17 @@ class _PendingMatchesView extends StatelessWidget {
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final match = items[index];
-                  return _PendingMatchCard(match: match);
+                  if (status == _MatchStatusTab.pending) {
+                    return _PendingMatchCard(
+                      match: match,
+                      member: member,
+                      memberTeamHasActiveMatch: memberTeamHasActiveMatch,
+                      memberTeamActivityResolved: memberTeamActivityResolved,
+                      accepting: acceptingMatchIds.contains(match.teamMatchId),
+                      onAccept: onAccept,
+                    );
+                  }
+                  return _PairedMatchCard(match: match);
                 },
               ),
       ),
@@ -265,9 +384,21 @@ class _PendingMatchesView extends StatelessWidget {
 }
 
 class _PendingMatchCard extends StatelessWidget {
-  const _PendingMatchCard({required this.match});
+  const _PendingMatchCard({
+    required this.match,
+    required this.member,
+    required this.memberTeamHasActiveMatch,
+    required this.memberTeamActivityResolved,
+    required this.accepting,
+    required this.onAccept,
+  });
 
-  final PendingTeamMatch match;
+  final TeamMatchSummary match;
+  final MemberMe? member;
+  final bool memberTeamHasActiveMatch;
+  final bool memberTeamActivityResolved;
+  final bool accepting;
+  final Future<void> Function(TeamMatchSummary, MemberMe) onAccept;
 
   @override
   Widget build(BuildContext context) {
@@ -299,7 +430,8 @@ class _PendingMatchCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const _PendingChip(),
+                const SizedBox(width: 8),
+                _buildAction(),
               ],
             ),
             const SizedBox(height: 14),
@@ -318,58 +450,167 @@ class _PendingMatchCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildAction() {
+    final currentMember = member;
+    if (currentMember == null || !currentMember.hasTeam) {
+      return const _StatusChip(label: 'PENDING', color: Color(0xFFF08C00));
+    }
+    if (currentMember.teamId == match.homeTeamId) {
+      return const _StatusChip(label: '내 팀 매치', color: Color(0xFF087F5B));
+    }
+    if (!currentMember.isTeamLeader) {
+      return const _StatusChip(label: '팀장만 가능', color: Color(0xFF868E96));
+    }
+
+    return FilledButton(
+      onPressed: !memberTeamActivityResolved ||
+              memberTeamHasActiveMatch ||
+              accepting
+          ? null
+          : () => onAccept(match, currentMember),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+        visualDensity: VisualDensity.compact,
+      ),
+      child: accepting
+          ? const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(
+              !memberTeamActivityResolved
+                  ? '확인 중'
+                  : memberTeamHasActiveMatch
+                  ? '진행 중'
+                  : '매치 수락',
+            ),
+    );
+  }
 }
 
-class _PendingChip extends StatelessWidget {
-  const _PendingChip();
+class _PairedMatchCard extends StatelessWidget {
+  const _PairedMatchCard({required this.match});
+
+  final TeamMatchSummary match;
 
   @override
   Widget build(BuildContext context) {
-    const color = Color(0xFFF08C00);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: const Text(
-        'PENDING',
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
+    final awayTeamName = match.awayTeamName ?? '상대 팀 미정';
+    final awayTeamRating = match.awayTeamRating?.toString() ?? '-';
+    final statusColor = match.isCompleted
+        ? const Color(0xFF5F3DC4)
+        : const Color(0xFF087F5B);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(17),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _TeamSide(
+                    name: match.homeTeamName,
+                    rating: match.homeTeamRating.toString(),
+                    label: 'HOME',
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'VS',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                  ),
+                ),
+                Expanded(
+                  child: _TeamSide(
+                    name: awayTeamName,
+                    rating: awayTeamRating,
+                    label: 'AWAY',
+                    alignEnd: true,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Text(
+                  '매치 #${match.teamMatchId}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const Spacer(),
+                _StatusChip(label: match.status, color: statusColor),
+                const SizedBox(width: 8),
+                Text(_formatDateTime(match.createdAt)),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _UnavailableStatusView extends StatelessWidget {
-  const _UnavailableStatusView({required this.status, required this.icon});
+class _TeamSide extends StatelessWidget {
+  const _TeamSide({
+    required this.name,
+    required this.rating,
+    required this.label,
+    this.alignEnd = false,
+  });
 
-  final String status;
-  final IconData icon;
+  final String name;
+  final String rating;
+  final String label;
+  final bool alignEnd;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(32),
+    return Column(
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 70),
-        Icon(icon, size: 56),
-        const SizedBox(height: 16),
         Text(
-          '$status 매치 조회 API 준비 중',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          label,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
         ),
-        const SizedBox(height: 7),
-        const Text(
-          '백엔드 조회 기능이 추가되면 이 탭에 바로 연결됩니다.',
-          textAlign: TextAlign.center,
+        const SizedBox(height: 3),
+        Text(
+          name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
         ),
+        Text('RATING $rating'),
       ],
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }
@@ -390,21 +631,28 @@ class _LoadingList extends StatelessWidget {
 }
 
 class _EmptyMatchesView extends StatelessWidget {
-  const _EmptyMatchesView();
+  const _EmptyMatchesView({required this.status});
+
+  final _MatchStatusTab status;
 
   @override
   Widget build(BuildContext context) {
+    final message = switch (status) {
+      _MatchStatusTab.pending => '대기 중인 매치가 없습니다.',
+      _MatchStatusTab.matched => '매칭된 경기가 없습니다.',
+      _MatchStatusTab.completed => '완료된 경기가 없습니다.',
+    };
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(32),
-      children: const [
-        SizedBox(height: 70),
-        Icon(Icons.sports_soccer, size: 56),
-        SizedBox(height: 15),
+      children: [
+        const SizedBox(height: 70),
+        const Icon(Icons.sports_soccer, size: 56),
+        const SizedBox(height: 15),
         Text(
-          '대기 중인 매치가 없습니다.',
+          message,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
         ),
       ],
     );

@@ -61,7 +61,7 @@ class _TeamMatchCreateScreenState
           .read(teamMatchRepositoryProvider)
           .createMatch(widget.teamId);
       if (!mounted) return;
-      ref.invalidate(pendingTeamMatchesProvider);
+      ref.invalidate(teamMatchesProvider('PENDING'));
       setState(() {
         _submitting = false;
         _result = result;

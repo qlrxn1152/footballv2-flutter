@@ -26,12 +26,15 @@ class TeamMatchCreateResult {
   }
 }
 
-class PendingTeamMatch {
-  const PendingTeamMatch({
+class TeamMatchSummary {
+  const TeamMatchSummary({
     required this.teamMatchId,
     required this.homeTeamId,
     required this.homeTeamName,
     required this.homeTeamRating,
+    required this.awayTeamId,
+    required this.awayTeamName,
+    required this.awayTeamRating,
     required this.status,
     required this.createdAt,
   });
@@ -40,17 +43,65 @@ class PendingTeamMatch {
   final int homeTeamId;
   final String homeTeamName;
   final int homeTeamRating;
+  final int? awayTeamId;
+  final String? awayTeamName;
+  final int? awayTeamRating;
   final String status;
   final DateTime? createdAt;
 
-  factory PendingTeamMatch.fromJson(Map<String, dynamic> json) {
-    return PendingTeamMatch(
+  bool get isPending => status == 'PENDING';
+  bool get isMatched => status == 'MATCHED';
+  bool get isCompleted => status == 'COMPLETED';
+
+  bool includesTeam(int teamId) =>
+      homeTeamId == teamId || awayTeamId == teamId;
+
+  factory TeamMatchSummary.fromJson(Map<String, dynamic> json) {
+    return TeamMatchSummary(
       teamMatchId: (json['teamMatchId'] as num).toInt(),
       homeTeamId: (json['homeTeamId'] as num).toInt(),
       homeTeamName: json['homeTeamName'] as String,
       homeTeamRating: (json['homeTeamRating'] as num).toInt(),
+      awayTeamId: (json['awayTeamId'] as num?)?.toInt(),
+      awayTeamName: json['awayTeamName'] as String?,
+      awayTeamRating: (json['awayTeamRating'] as num?)?.toInt(),
       status: json['status'] as String,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+    );
+  }
+}
+
+class TeamMatchAcceptResult {
+  const TeamMatchAcceptResult({
+    required this.teamMatchId,
+    required this.homeTeamId,
+    required this.homeTeamName,
+    required this.homeTeamRating,
+    required this.awayTeamId,
+    required this.awayTeamName,
+    required this.awayTeamRating,
+    required this.status,
+  });
+
+  final int teamMatchId;
+  final int homeTeamId;
+  final String homeTeamName;
+  final int homeTeamRating;
+  final int awayTeamId;
+  final String awayTeamName;
+  final int awayTeamRating;
+  final String status;
+
+  factory TeamMatchAcceptResult.fromJson(Map<String, dynamic> json) {
+    return TeamMatchAcceptResult(
+      teamMatchId: (json['teamMatchId'] as num).toInt(),
+      homeTeamId: (json['homeTeamId'] as num).toInt(),
+      homeTeamName: json['homeTeamName'] as String,
+      homeTeamRating: (json['homeTeamRating'] as num).toInt(),
+      awayTeamId: (json['awayTeamId'] as num).toInt(),
+      awayTeamName: json['awayTeamName'] as String,
+      awayTeamRating: (json['awayTeamRating'] as num).toInt(),
+      status: json['status'] as String,
     );
   }
 }
