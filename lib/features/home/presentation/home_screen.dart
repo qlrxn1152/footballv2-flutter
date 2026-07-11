@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../matches/data/team_match_repository.dart';
+import '../../matches/presentation/match_hub_screen.dart';
 import '../../members/data/member_repository.dart';
 import '../../members/presentation/member_ranking_screen.dart';
 import '../../teams/data/team_repository.dart';
@@ -17,10 +19,11 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _index = 0;
 
-  static const _titles = ['선수 랭킹', '팀', '내 정보'];
+  static const _titles = ['선수 랭킹', '팀', '매치', '내 정보'];
   static const _pages = [
     MemberRankingScreen(),
     TeamListScreen(),
+    MatchHubScreen(),
     ProfileScreen(),
   ];
 
@@ -33,6 +36,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref.invalidate(teamsProvider);
         break;
       case 2:
+        ref.invalidate(pendingTeamMatchesProvider);
+        ref.invalidate(memberMeProvider);
+        break;
+      case 3:
         ref.invalidate(memberMeProvider);
         ref.invalidate(myTeamJoinRequestsProvider);
         break;
@@ -80,6 +87,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: Icon(Icons.groups_outlined),
             selectedIcon: Icon(Icons.groups),
             label: '팀',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.sports_soccer),
+            selectedIcon: Icon(Icons.sports_soccer),
+            label: '매치',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

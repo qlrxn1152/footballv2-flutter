@@ -17,8 +17,28 @@ class TeamMatchRepository {
       return TeamMatchCreateResult.fromJson(jsonMap(response.data));
     });
   }
+
+  Future<List<PendingTeamMatch>> fetchPendingMatches() {
+    return runApi(() async {
+      final response = await _apiClient.dio.get<Object?>(
+        '/api/team-matches/pending',
+      );
+      final data = response.data;
+      if (data is! List) {
+        throw const ApiException('대기 매치 목록 응답 형식이 올바르지 않습니다.');
+      }
+      return data
+          .map((item) => PendingTeamMatch.fromJson(jsonMap(item)))
+          .toList(growable: false);
+    });
+  }
 }
 
 final teamMatchRepositoryProvider = Provider<TeamMatchRepository>(
   (ref) => TeamMatchRepository(ref.watch(apiClientProvider)),
 );
+
+final pendingTeamMatchesProvider =
+    FutureProvider.autoDispose<List<PendingTeamMatch>>(
+      (ref) => ref.watch(teamMatchRepositoryProvider).fetchPendingMatches(),
+    );

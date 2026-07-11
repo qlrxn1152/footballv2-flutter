@@ -25,3 +25,32 @@ class TeamMatchCreateResult {
     );
   }
 }
+
+class PendingTeamMatch {
+  const PendingTeamMatch({
+    required this.teamMatchId,
+    required this.homeTeamId,
+    required this.homeTeamName,
+    required this.homeTeamRating,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final int teamMatchId;
+  final int homeTeamId;
+  final String homeTeamName;
+  final int homeTeamRating;
+  final String status;
+  final DateTime? createdAt;
+
+  factory PendingTeamMatch.fromJson(Map<String, dynamic> json) {
+    return PendingTeamMatch(
+      teamMatchId: (json['teamMatchId'] as num).toInt(),
+      homeTeamId: (json['homeTeamId'] as num).toInt(),
+      homeTeamName: json['homeTeamName'] as String,
+      homeTeamRating: (json['homeTeamRating'] as num).toInt(),
+      status: json['status'] as String,
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+    );
+  }
+}

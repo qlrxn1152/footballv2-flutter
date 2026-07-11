@@ -14,6 +14,7 @@ FootballV2 Spring Boot REST API를 사용하는 Android Flutter 앱입니다.
 - 팀 리더의 팀 이름 변경
 - 팀장만 남은 팀의 해체
 - 팀 리더의 대기 매치 등록
+- PENDING 매치 최신순 조회와 상태별 매치 탭
 - 팀 가입 신청
 - 마이페이지와 현재 소속 팀 조회
 - 내 팀 가입 신청 조회·취소
