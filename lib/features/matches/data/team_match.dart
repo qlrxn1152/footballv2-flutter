@@ -35,6 +35,10 @@ class TeamMatchSummary {
     required this.awayTeamId,
     required this.awayTeamName,
     required this.awayTeamRating,
+    required this.homeScore,
+    required this.awayScore,
+    required this.winnerTeamId,
+    required this.winnerTeamName,
     required this.status,
     required this.createdAt,
   });
@@ -46,12 +50,18 @@ class TeamMatchSummary {
   final int? awayTeamId;
   final String? awayTeamName;
   final int? awayTeamRating;
+  final int? homeScore;
+  final int? awayScore;
+  final int? winnerTeamId;
+  final String? winnerTeamName;
   final String status;
   final DateTime? createdAt;
 
   bool get isPending => status == 'PENDING';
   bool get isMatched => status == 'MATCHED';
   bool get isCompleted => status == 'COMPLETED';
+  bool get hasResult => homeScore != null && awayScore != null;
+  bool get isDraw => hasResult && homeScore == awayScore;
 
   bool includesTeam(int teamId) =>
       homeTeamId == teamId || awayTeamId == teamId;
@@ -65,6 +75,10 @@ class TeamMatchSummary {
       awayTeamId: (json['awayTeamId'] as num?)?.toInt(),
       awayTeamName: json['awayTeamName'] as String?,
       awayTeamRating: (json['awayTeamRating'] as num?)?.toInt(),
+      homeScore: (json['homeScore'] as num?)?.toInt(),
+      awayScore: (json['awayScore'] as num?)?.toInt(),
+      winnerTeamId: (json['winnerTeamId'] as num?)?.toInt(),
+      winnerTeamName: json['winnerTeamName'] as String?,
       status: json['status'] as String,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
     );

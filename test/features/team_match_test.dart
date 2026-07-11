@@ -59,6 +59,53 @@ void main() {
     expect(match.includesTeam(4), isTrue);
   });
 
+  test('COMPLETED 매치 목록의 점수와 승자를 변환한다', () {
+    final match = TeamMatchSummary.fromJson({
+      'teamMatchId': 23,
+      'homeTeamId': 3,
+      'homeTeamName': 'teamA',
+      'homeTeamRating': 1500,
+      'homeScore': 4,
+      'awayTeamId': 4,
+      'awayTeamName': 'teamB',
+      'awayTeamRating': 1510,
+      'awayScore': 2,
+      'winnerTeamId': 3,
+      'winnerTeamName': 'teamA',
+      'status': 'COMPLETED',
+      'createdAt': '2026-07-11T16:00:00',
+    });
+
+    expect(match.homeScore, 4);
+    expect(match.awayScore, 2);
+    expect(match.winnerTeamId, 3);
+    expect(match.winnerTeamName, 'teamA');
+    expect(match.hasResult, isTrue);
+    expect(match.isDraw, isFalse);
+  });
+
+  test('COMPLETED 무승부 매치는 승자가 없다', () {
+    final match = TeamMatchSummary.fromJson({
+      'teamMatchId': 24,
+      'homeTeamId': 3,
+      'homeTeamName': 'teamA',
+      'homeTeamRating': 1500,
+      'homeScore': 2,
+      'awayTeamId': 4,
+      'awayTeamName': 'teamB',
+      'awayTeamRating': 1510,
+      'awayScore': 2,
+      'winnerTeamId': null,
+      'winnerTeamName': null,
+      'status': 'COMPLETED',
+      'createdAt': '2026-07-11T17:00:00',
+    });
+
+    expect(match.hasResult, isTrue);
+    expect(match.isDraw, isTrue);
+    expect(match.winnerTeamName, isNull);
+  });
+
   test('매치 수락 응답을 변환한다', () {
     final result = TeamMatchAcceptResult.fromJson({
       'teamMatchId': 22,

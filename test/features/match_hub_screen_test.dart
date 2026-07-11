@@ -59,6 +59,10 @@ void main() {
     'awayTeamId': 10,
     'awayTeamName': 'teamF',
     'awayTeamRating': 1530,
+    'homeScore': 3,
+    'awayScore': 1,
+    'winnerTeamId': 9,
+    'winnerTeamName': 'teamE',
     'status': 'COMPLETED',
     'createdAt': '2026-07-11T16:00:00',
   });
@@ -110,6 +114,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('teamE'), findsOneWidget);
     expect(find.text('teamF'), findsOneWidget);
+    expect(find.text('3 : 1'), findsOneWidget);
+    expect(find.text('teamE 승리'), findsOneWidget);
     expect(find.text('COMPLETED'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -158,6 +164,39 @@ void main() {
     expect(find.text('매치 결과 입력'), findsOneWidget);
     expect(find.text('teamA'), findsOneWidget);
     expect(find.text('teamB'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('COMPLETED 무승부 매치의 스코어와 무승부를 표시한다', (tester) async {
+    final drawMatch = TeamMatchSummary.fromJson({
+      'teamMatchId': 25,
+      'homeTeamId': 3,
+      'homeTeamName': 'teamA',
+      'homeTeamRating': 1500,
+      'homeScore': 2,
+      'awayTeamId': 4,
+      'awayTeamName': 'teamB',
+      'awayTeamRating': 1510,
+      'awayScore': 2,
+      'winnerTeamId': null,
+      'winnerTeamName': null,
+      'status': 'COMPLETED',
+      'createdAt': '2026-07-11T18:00:00',
+    });
+    await tester.pumpWidget(
+      buildScreen(
+        homeLeader,
+        pending: const [],
+        matched: const [],
+        completed: [drawMatch],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 : 2'), findsOneWidget);
+    expect(find.text('무승부'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

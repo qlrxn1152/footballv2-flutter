@@ -538,6 +538,9 @@ class _PairedMatchCard extends StatelessWidget {
     final statusColor = match.isCompleted
         ? const Color(0xFF5F3DC4)
         : const Color(0xFF087F5B);
+    final versusLabel = match.isCompleted && match.hasResult
+        ? '${match.homeScore} : ${match.awayScore}'
+        : 'VS';
 
     return Card(
       child: Padding(
@@ -553,11 +556,14 @@ class _PairedMatchCard extends StatelessWidget {
                     label: 'HOME',
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Text(
-                    'VS',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                    versusLabel,
+                    style: TextStyle(
+                      fontSize: match.hasResult ? 21 : 17,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
                 Expanded(
@@ -570,6 +576,10 @@ class _PairedMatchCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (match.isCompleted && match.hasResult) ...[
+              const SizedBox(height: 14),
+              _MatchResultBanner(match: match),
+            ],
             const SizedBox(height: 16),
             Row(
               children: [
@@ -596,6 +606,48 @@ class _PairedMatchCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MatchResultBanner extends StatelessWidget {
+  const _MatchResultBanner({required this.match});
+
+  final TeamMatchSummary match;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDraw = match.isDraw;
+    final winnerName = match.winnerTeamName ??
+        ((match.homeScore ?? 0) > (match.awayScore ?? 0)
+            ? match.homeTeamName
+            : match.awayTeamName ?? '상대 팀');
+    final color = isDraw
+        ? const Color(0xFF495057)
+        : const Color(0xFF5F3DC4);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            isDraw ? Icons.balance_outlined : Icons.emoji_events_outlined,
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            isDraw ? '무승부' : '$winnerName 승리',
+            style: TextStyle(color: color, fontWeight: FontWeight.w900),
+          ),
+        ],
       ),
     );
   }
