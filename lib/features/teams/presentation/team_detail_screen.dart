@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../../matches/data/team_match.dart';
+import '../../matches/presentation/team_match_create_screen.dart';
 import '../../members/data/member_repository.dart';
 import '../data/team_models.dart';
 import '../data/team_repository.dart';
@@ -21,6 +23,7 @@ class TeamDetailScreen extends ConsumerStatefulWidget {
 
 class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
   bool _joining = false;
+  TeamMatchCreateResult? _registeredMatch;
 
   Future<void> _refresh() async {
     ref.invalidate(teamDetailProvider(widget.teamId));
@@ -103,6 +106,24 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
     );
   }
 
+  Future<void> _openMatchRegistration(TeamDetail team) async {
+    final result = await Navigator.of(context).push<TeamMatchCreateResult>(
+      MaterialPageRoute(
+        builder: (_) => TeamMatchCreateScreen(
+          teamId: team.teamId,
+          teamName: team.teamName,
+          teamRating: team.teamRating,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    setState(() => _registeredMatch = result);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('매치를 등록했습니다. 상대 팀을 기다립니다.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final detail = ref.watch(teamDetailProvider(widget.teamId));
@@ -155,6 +176,15 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (_registeredMatch == null)
+                          FilledButton.icon(
+                            onPressed: () => _openMatchRegistration(team),
+                            icon: const Icon(Icons.sports_soccer),
+                            label: const Text('매치 등록'),
+                          )
+                        else
+                          _RegisteredMatchBanner(match: _registeredMatch!),
+                        const SizedBox(height: 9),
                         FilledButton.icon(
                           onPressed: () => Navigator.of(context).push<void>(
                             MaterialPageRoute(
@@ -387,6 +417,41 @@ class _MembershipBanner extends StatelessWidget {
           Icon(Icons.verified_outlined),
           SizedBox(width: 10),
           Text('현재 소속된 팀입니다.', style: TextStyle(fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _RegisteredMatchBanner extends StatelessWidget {
+  const _RegisteredMatchBanner({required this.match});
+
+  final TeamMatchCreateResult match;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3BF),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.hourglass_top_outlined),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '상대 팀 대기 중',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+                Text('매치 번호 #${match.teamMatchId} · ${match.status}'),
+              ],
+            ),
+          ),
         ],
       ),
     );
