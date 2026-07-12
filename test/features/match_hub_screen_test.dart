@@ -93,13 +93,18 @@ void main() {
     );
   }
 
-  testWidgets('PENDING, MATCHED, COMPLETED 매치를 상태별로 표시한다', (
+  testWidgets('전체, PENDING, MATCHED, COMPLETED 매치를 상태별로 표시한다', (
     tester,
   ) async {
     await tester.pumpWidget(buildScreen(homeLeader));
     await tester.pumpAndSettle();
 
+    expect(find.text('전체'), findsOneWidget);
     expect(find.text('등록한 매치 대기 중'), findsOneWidget);
+    expect(find.text('teamE 승리'), findsOneWidget);
+
+    await tester.tap(find.text('대기'));
+    await tester.pumpAndSettle();
     expect(find.text('teamA'), findsOneWidget);
     expect(find.text('내 팀 매치'), findsOneWidget);
     expect(find.text('매치 #21'), findsOneWidget);
@@ -124,6 +129,8 @@ void main() {
     await tester.pumpWidget(buildScreen(awayLeader));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('대기'));
+    await tester.pumpAndSettle();
     expect(find.text('매치 수락'), findsOneWidget);
     await tester.tap(find.text('매치 수락'));
     await tester.pumpAndSettle();

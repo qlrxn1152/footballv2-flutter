@@ -15,6 +15,7 @@ FootballV2 Spring Boot REST API를 사용하는 Android Flutter 앱입니다.
 - 팀장만 남은 팀의 해체
 - 팀 리더의 대기 매치 등록
 - PENDING·MATCHED·COMPLETED 매치 최신순 조회와 상태별 매치 탭
+- 전체 매치를 상태 구분 없이 최신순으로 확인하는 매치 탭
 - 다른 팀 리더의 PENDING 매치 수락 및 매칭 성사 처리
 - 홈 팀 리더의 MATCHED 매치 결과 입력 및 완료 처리
 - COMPLETED 매치의 최종 스코어·승리 팀·무승부 표시

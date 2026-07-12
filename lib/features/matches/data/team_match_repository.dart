@@ -98,6 +98,25 @@ final teamMatchesProvider = FutureProvider.autoDispose
           ref.watch(teamMatchRepositoryProvider).fetchMatches(status),
     );
 
+final allTeamMatchesProvider =
+    FutureProvider.autoDispose<List<TeamMatchSummary>>((ref) async {
+      final lists = await Future.wait([
+        ref.watch(teamMatchesProvider('PENDING').future),
+        ref.watch(teamMatchesProvider('MATCHED').future),
+        ref.watch(teamMatchesProvider('COMPLETED').future),
+      ]);
+      final matches = lists.expand((items) => items).toList();
+      matches.sort((a, b) {
+        final aDate = a.createdAt;
+        final bDate = b.createdAt;
+        if (aDate == null && bDate == null) return 0;
+        if (aDate == null) return 1;
+        if (bDate == null) return -1;
+        return bDate.compareTo(aDate);
+      });
+      return List.unmodifiable(matches);
+    });
+
 typedef TeamMatchHistoryQuery = ({int teamId, String status});
 
 final teamMatchHistoryProvider = FutureProvider.autoDispose

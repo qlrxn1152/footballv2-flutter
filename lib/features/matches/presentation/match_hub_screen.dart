@@ -10,10 +10,11 @@ import '../data/team_match_repository.dart';
 import 'team_match_create_screen.dart';
 import 'team_match_result_screen.dart';
 
-enum _MatchStatusTab { pending, matched, completed }
+enum _MatchStatusTab { all, pending, matched, completed }
 
 extension on _MatchStatusTab {
   String get apiValue => switch (this) {
+    _MatchStatusTab.all => 'ALL',
     _MatchStatusTab.pending => 'PENDING',
     _MatchStatusTab.matched => 'MATCHED',
     _MatchStatusTab.completed => 'COMPLETED',
@@ -28,11 +29,19 @@ class MatchHubScreen extends ConsumerStatefulWidget {
 }
 
 class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
-  _MatchStatusTab _status = _MatchStatusTab.pending;
+  _MatchStatusTab _status = _MatchStatusTab.all;
   bool _openingRegistration = false;
   final Set<int> _acceptingMatchIds = {};
 
   Future<void> _refreshStatus(_MatchStatusTab status) async {
+    if (status == _MatchStatusTab.all) {
+      for (final value in const ['PENDING', 'MATCHED', 'COMPLETED']) {
+        ref.invalidate(teamMatchesProvider(value));
+      }
+      ref.invalidate(allTeamMatchesProvider);
+      await ref.read(allTeamMatchesProvider.future);
+      return;
+    }
     final provider = teamMatchesProvider(status.apiValue);
     ref.invalidate(provider);
     await ref.read(provider.future);
@@ -192,6 +201,7 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
     final pendingMatches = ref.watch(teamMatchesProvider('PENDING'));
     final matchedMatches = ref.watch(teamMatchesProvider('MATCHED'));
     final completedMatches = ref.watch(teamMatchesProvider('COMPLETED'));
+    final allMatches = ref.watch(allTeamMatchesProvider);
 
     final memberValue = member.when(
       data: (item) => item,
@@ -206,6 +216,7 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
         _hasData(pendingMatches) && _hasData(matchedMatches);
 
     final selectedMatches = switch (_status) {
+      _MatchStatusTab.all => allMatches,
       _MatchStatusTab.pending => pendingMatches,
       _MatchStatusTab.matched => matchedMatches,
       _MatchStatusTab.completed => completedMatches,
@@ -229,6 +240,11 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: SegmentedButton<_MatchStatusTab>(
             segments: const [
+              ButtonSegment(
+                value: _MatchStatusTab.all,
+                icon: Icon(Icons.format_list_bulleted),
+                label: Text('전체'),
+              ),
               ButtonSegment(
                 value: _MatchStatusTab.pending,
                 icon: Icon(Icons.hourglass_top_outlined),
@@ -418,7 +434,7 @@ class _MatchesView extends StatelessWidget {
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final match = items[index];
-                  if (status == _MatchStatusTab.pending) {
+                  if (match.isPending) {
                     return _PendingMatchCard(
                       match: match,
                       member: member,
@@ -429,7 +445,7 @@ class _MatchesView extends StatelessWidget {
                     );
                   }
                   final canEnterResult =
-                      status == _MatchStatusTab.matched &&
+                      match.isMatched &&
                       member?.isTeamLeader == true &&
                       member?.teamId == match.homeTeamId;
                   return _PairedMatchCard(
@@ -764,6 +780,7 @@ class _EmptyMatchesView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final message = switch (status) {
+      _MatchStatusTab.all => '등록된 매치가 없습니다.',
       _MatchStatusTab.pending => '대기 중인 매치가 없습니다.',
       _MatchStatusTab.matched => '매칭된 경기가 없습니다.',
       _MatchStatusTab.completed => '완료된 경기가 없습니다.',
