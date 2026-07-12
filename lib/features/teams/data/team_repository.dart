@@ -182,7 +182,7 @@ final teamRepositoryProvider = Provider<TeamRepository>(
   (ref) => TeamRepository(ref.watch(apiClientProvider)),
 );
 
-final teamsProvider = FutureProvider.autoDispose<List<TeamSummary>>(
+final teamsProvider = FutureProvider<List<TeamSummary>>(
   (ref) => ref.watch(teamRepositoryProvider).fetchTeams(),
 );
 

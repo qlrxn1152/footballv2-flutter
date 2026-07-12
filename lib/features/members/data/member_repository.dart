@@ -80,7 +80,7 @@ final memberRepositoryProvider = Provider<MemberRepository>(
   (ref) => MemberRepository(ref.watch(apiClientProvider)),
 );
 
-final memberRankingsProvider = FutureProvider.autoDispose<List<MemberRanking>>(
+final memberRankingsProvider = FutureProvider<List<MemberRanking>>(
   (ref) => ref.watch(memberRepositoryProvider).fetchRankings(),
 );
 

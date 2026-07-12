@@ -92,14 +92,14 @@ final teamMatchRepositoryProvider = Provider<TeamMatchRepository>(
   (ref) => TeamMatchRepository(ref.watch(apiClientProvider)),
 );
 
-final teamMatchesProvider = FutureProvider.autoDispose
+final teamMatchesProvider = FutureProvider
     .family<List<TeamMatchSummary>, String>(
       (ref, status) =>
           ref.watch(teamMatchRepositoryProvider).fetchMatches(status),
     );
 
 final allTeamMatchesProvider =
-    FutureProvider.autoDispose<List<TeamMatchSummary>>((ref) async {
+    FutureProvider<List<TeamMatchSummary>>((ref) async {
       final lists = await Future.wait([
         ref.watch(teamMatchesProvider('PENDING').future),
         ref.watch(teamMatchesProvider('MATCHED').future),
