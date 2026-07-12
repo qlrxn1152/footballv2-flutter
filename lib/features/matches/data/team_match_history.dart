@@ -7,6 +7,7 @@ class TeamMatchHistory {
     required this.awayTeamName,
     required this.status,
     required this.createdAt,
+    required this.playedAt,
     required this.homeScore,
     required this.awayScore,
     required this.winnerTeamId,
@@ -20,6 +21,7 @@ class TeamMatchHistory {
   final String? awayTeamName;
   final String status;
   final DateTime? createdAt;
+  final DateTime? playedAt;
   final int? homeScore;
   final int? awayScore;
   final int? winnerTeamId;
@@ -43,6 +45,7 @@ class TeamMatchHistory {
       awayTeamName: json['awayTeamName'] as String?,
       status: json['status'] as String,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      playedAt: DateTime.tryParse(json['playedAt']?.toString() ?? ''),
       homeScore: (json['homeScore'] as num?)?.toInt(),
       awayScore: (json['awayScore'] as num?)?.toInt(),
       winnerTeamId: (json['winnerTeamId'] as num?)?.toInt(),

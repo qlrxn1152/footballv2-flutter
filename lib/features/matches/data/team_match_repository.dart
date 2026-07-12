@@ -10,12 +10,25 @@ class TeamMatchRepository {
 
   final ApiClient _apiClient;
 
-  Future<TeamMatchCreateResult> createMatch(int teamId) {
+  Future<TeamMatchCreateResult> createMatch({
+    required int teamId,
+    required DateTime playedAt,
+  }) {
     return runApi(() async {
       final response = await _apiClient.dio.post<Object?>(
         '/api/teams/$teamId/matches',
+        data: {'playedAt': playedAt.toIso8601String()},
       );
       return TeamMatchCreateResult.fromJson(jsonMap(response.data));
+    });
+  }
+
+  Future<TeamMatchDetail> fetchMatchDetail(int teamMatchId) {
+    return runApi(() async {
+      final response = await _apiClient.dio.get<Object?>(
+        '/api/team-matches/$teamMatchId',
+      );
+      return TeamMatchDetail.fromJson(jsonMap(response.data));
     });
   }
 
@@ -96,6 +109,13 @@ final teamMatchesProvider = FutureProvider
     .family<List<TeamMatchSummary>, String>(
       (ref, status) =>
           ref.watch(teamMatchRepositoryProvider).fetchMatches(status),
+    );
+
+final teamMatchDetailProvider = FutureProvider.autoDispose
+    .family<TeamMatchDetail, int>(
+      (ref, teamMatchId) => ref
+          .watch(teamMatchRepositoryProvider)
+          .fetchMatchDetail(teamMatchId),
     );
 
 final allTeamMatchesProvider =

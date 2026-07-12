@@ -464,6 +464,7 @@ class _RegisteredMatchBanner extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w900),
                 ),
                 Text('매치 번호 #${match.teamMatchId} · ${match.status}'),
+                Text('경기 ${_formatMatchDateTime(match.playedAt)}'),
               ],
             ),
           ),
@@ -471,6 +472,15 @@ class _RegisteredMatchBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatMatchDateTime(DateTime? value) {
+  if (value == null) return '-';
+  final month = value.month.toString().padLeft(2, '0');
+  final day = value.day.toString().padLeft(2, '0');
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '${value.year}.$month.$day $hour:$minute';
 }
 
 class _PendingJoinBanner extends StatelessWidget {

@@ -28,14 +28,59 @@ class _TeamMatchCreateScreenState
   bool _submitting = false;
   String? _errorMessage;
   TeamMatchCreateResult? _result;
+  DateTime? _playedAt;
+
+  Future<void> _selectPlayedAt() async {
+    final now = DateTime.now();
+    final initial = _playedAt ?? now.add(const Duration(hours: 1));
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 365)),
+      helpText: '경기 날짜 선택',
+    );
+    if (selectedDate == null || !mounted) return;
+
+    final selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+      helpText: '경기 시간 선택',
+    );
+    if (selectedTime == null || !mounted) return;
+
+    final playedAt = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      selectedTime.hour,
+      selectedTime.minute,
+    );
+    if (!playedAt.isAfter(DateTime.now())) {
+      setState(() => _errorMessage = '경기 일시는 현재 시간 이후로 선택해주세요.');
+      return;
+    }
+
+    setState(() {
+      _playedAt = playedAt;
+      _errorMessage = null;
+    });
+  }
 
   Future<void> _createMatch() async {
+    final playedAt = _playedAt;
+    if (playedAt == null) {
+      setState(() => _errorMessage = '경기 날짜와 시간을 먼저 선택해주세요.');
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('매치 등록'),
         content: Text(
           '${widget.teamName}을 홈 팀으로 매치를 등록할까요?\n\n'
+          '경기 일시: ${_formatFullDateTime(playedAt)}\n'
           '등록 후 상대 팀의 참가를 기다리는 PENDING 상태가 됩니다.',
         ),
         actions: [
@@ -59,7 +104,7 @@ class _TeamMatchCreateScreenState
     try {
       final result = await ref
           .read(teamMatchRepositoryProvider)
-          .createMatch(widget.teamId);
+          .createMatch(teamId: widget.teamId, playedAt: playedAt);
       if (!mounted) return;
       ref.invalidate(teamMatchesProvider('PENDING'));
       ref.invalidate(
@@ -108,10 +153,33 @@ class _TeamMatchCreateScreenState
             teamRating: widget.teamRating,
           ),
           const SizedBox(height: 18),
+          Card(
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 8,
+              ),
+              leading: const Icon(Icons.event_outlined),
+              title: const Text(
+                '경기 일시',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              subtitle: Text(
+                _playedAt == null
+                    ? '경기 날짜와 시간을 선택해주세요.'
+                    : _formatFullDateTime(_playedAt!),
+              ),
+              trailing: FilledButton.tonal(
+                onPressed: _submitting ? null : _selectPlayedAt,
+                child: Text(_playedAt == null ? '선택' : '변경'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
           const _MatchFlowCard(),
           const SizedBox(height: 24),
           FilledButton.icon(
-            onPressed: _submitting ? null : _createMatch,
+            onPressed: _submitting || _playedAt == null ? null : _createMatch,
             icon: _submitting
                 ? const SizedBox.square(
                     dimension: 20,
@@ -167,6 +235,11 @@ class _TeamMatchCreateScreenState
               children: [
                 _ResultRow(label: '매치 번호', value: '#${result.teamMatchId}'),
                 const Divider(height: 26),
+                _ResultRow(
+                  label: '경기 일시',
+                  value: _formatFullDateTime(result.playedAt),
+                ),
+                const Divider(height: 26),
                 _ResultRow(label: '홈 팀', value: result.homeTeamName),
                 const Divider(height: 26),
                 _ResultRow(
@@ -196,6 +269,15 @@ class _TeamMatchCreateScreenState
       _ => status,
     };
   }
+}
+
+String _formatFullDateTime(DateTime? value) {
+  if (value == null) return '-';
+  final month = value.month.toString().padLeft(2, '0');
+  final day = value.day.toString().padLeft(2, '0');
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '${value.year}.$month.$day $hour:$minute';
 }
 
 class _HomeTeamCard extends StatelessWidget {

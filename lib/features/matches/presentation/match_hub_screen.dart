@@ -8,6 +8,7 @@ import '../../teams/data/team_repository.dart';
 import '../data/team_match.dart';
 import '../data/team_match_repository.dart';
 import 'team_match_create_screen.dart';
+import 'team_match_detail_screen.dart';
 import 'team_match_result_screen.dart';
 
 enum _MatchStatusTab { all, pending, matched, completed }
@@ -195,6 +196,14 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
     );
   }
 
+  Future<void> _openMatchDetail(int teamMatchId) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => TeamMatchDetailScreen(teamMatchId: teamMatchId),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final member = ref.watch(memberMeProvider);
@@ -278,6 +287,7 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
             onRefresh: () => _refreshStatus(_status),
             onAccept: _acceptMatch,
             onEnterResult: _openResultRegistration,
+            onOpenDetail: _openMatchDetail,
           ),
         ),
       ],
@@ -403,6 +413,7 @@ class _MatchesView extends StatelessWidget {
     required this.onRefresh,
     required this.onAccept,
     required this.onEnterResult,
+    required this.onOpenDetail,
   });
 
   final _MatchStatusTab status;
@@ -414,6 +425,7 @@ class _MatchesView extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final Future<void> Function(TeamMatchSummary, MemberMe) onAccept;
   final Future<void> Function(TeamMatchSummary) onEnterResult;
+  final Future<void> Function(int) onOpenDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -442,6 +454,7 @@ class _MatchesView extends StatelessWidget {
                       memberTeamActivityResolved: memberTeamActivityResolved,
                       accepting: acceptingMatchIds.contains(match.teamMatchId),
                       onAccept: onAccept,
+                      onOpenDetail: () => onOpenDetail(match.teamMatchId),
                     );
                   }
                   final canEnterResult =
@@ -453,6 +466,7 @@ class _MatchesView extends StatelessWidget {
                     onEnterResult: canEnterResult
                         ? () => onEnterResult(match)
                         : null,
+                    onOpenDetail: () => onOpenDetail(match.teamMatchId),
                   );
                 },
               ),
@@ -469,6 +483,7 @@ class _PendingMatchCard extends StatelessWidget {
     required this.memberTeamActivityResolved,
     required this.accepting,
     required this.onAccept,
+    required this.onOpenDetail,
   });
 
   final TeamMatchSummary match;
@@ -477,6 +492,7 @@ class _PendingMatchCard extends StatelessWidget {
   final bool memberTeamActivityResolved;
   final bool accepting;
   final Future<void> Function(TeamMatchSummary, MemberMe) onAccept;
+  final VoidCallback onOpenDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -520,8 +536,17 @@ class _PendingMatchCard extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
                 const Spacer(),
-                Text(_formatDateTime(match.createdAt)),
+                Text('경기 ${_formatDateTime(match.playedAt)}'),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onOpenDetail,
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('매치 상세'),
+              ),
             ),
           ],
         ),
@@ -568,10 +593,15 @@ class _PendingMatchCard extends StatelessWidget {
 }
 
 class _PairedMatchCard extends StatelessWidget {
-  const _PairedMatchCard({required this.match, this.onEnterResult});
+  const _PairedMatchCard({
+    required this.match,
+    required this.onOpenDetail,
+    this.onEnterResult,
+  });
 
   final TeamMatchSummary match;
   final VoidCallback? onEnterResult;
+  final VoidCallback onOpenDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -632,11 +662,20 @@ class _PairedMatchCard extends StatelessWidget {
                 const Spacer(),
                 _StatusChip(label: match.status, color: statusColor),
                 const SizedBox(width: 8),
-                Text(_formatDateTime(match.createdAt)),
+                Text('경기 ${_formatDateTime(match.playedAt)}'),
               ],
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onOpenDetail,
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('매치 상세'),
+              ),
+            ),
             if (onEnterResult != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 9),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(

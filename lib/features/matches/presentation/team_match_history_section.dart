@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../data/team_match_history.dart';
 import '../data/team_match_repository.dart';
+import 'team_match_detail_screen.dart';
 
 enum _HistoryStatus { pending, matched, completed }
 
@@ -36,6 +37,14 @@ class _TeamMatchHistorySectionState
 
   void _retry() {
     ref.invalidate(teamMatchHistoryProvider(_query));
+  }
+
+  Future<void> _openDetail(int teamMatchId) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => TeamMatchDetailScreen(teamMatchId: teamMatchId),
+      ),
+    );
   }
 
   @override
@@ -106,7 +115,11 @@ class _TeamMatchHistorySectionState
               : Column(
                   children: [
                     for (var index = 0; index < items.length; index++) ...[
-                      _HistoryMatchCard(match: items[index]),
+                      _HistoryMatchCard(
+                        match: items[index],
+                        onOpenDetail: () =>
+                            _openDetail(items[index].teamMatchId),
+                      ),
                       if (index != items.length - 1)
                         const SizedBox(height: 9),
                     ],
@@ -119,9 +132,13 @@ class _TeamMatchHistorySectionState
 }
 
 class _HistoryMatchCard extends StatelessWidget {
-  const _HistoryMatchCard({required this.match});
+  const _HistoryMatchCard({
+    required this.match,
+    required this.onOpenDetail,
+  });
 
   final TeamMatchHistory match;
+  final VoidCallback onOpenDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -178,8 +195,17 @@ class _HistoryMatchCard extends StatelessWidget {
                 const Spacer(),
                 _HistoryStatusChip(status: match.status),
                 const SizedBox(width: 8),
-                Text(_formatDateTime(match.createdAt)),
+                Text('경기 ${_formatDateTime(match.playedAt)}'),
               ],
+            ),
+            const SizedBox(height: 11),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onOpenDetail,
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('매치 상세'),
+              ),
             ),
           ],
         ),

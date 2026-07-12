@@ -21,6 +21,8 @@ void main() {
 
     expect(find.text('teamA'), findsOneWidget);
     expect(find.text('TEAM RATING 1500'), findsOneWidget);
+    expect(find.text('경기 일시'), findsOneWidget);
+    expect(find.text('경기 날짜와 시간을 선택해주세요.'), findsOneWidget);
     expect(find.textContaining('PENDING'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, '매치 등록'), findsOneWidget);
     expect(tester.takeException(), isNull);

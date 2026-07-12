@@ -5,6 +5,8 @@ class TeamMatchCreateResult {
     required this.homeTeamName,
     required this.homeTeamRating,
     required this.status,
+    required this.playedAt,
+    required this.createdAt,
   });
 
   final int teamMatchId;
@@ -12,6 +14,8 @@ class TeamMatchCreateResult {
   final String homeTeamName;
   final int homeTeamRating;
   final String status;
+  final DateTime? playedAt;
+  final DateTime? createdAt;
 
   bool get isPending => status == 'PENDING';
 
@@ -22,6 +26,8 @@ class TeamMatchCreateResult {
       homeTeamName: json['homeTeamName'] as String,
       homeTeamRating: (json['homeTeamRating'] as num).toInt(),
       status: json['status'] as String,
+      playedAt: DateTime.tryParse(json['playedAt']?.toString() ?? ''),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
     );
   }
 }
@@ -41,6 +47,7 @@ class TeamMatchSummary {
     required this.winnerTeamName,
     required this.status,
     required this.createdAt,
+    required this.playedAt,
   });
 
   final int teamMatchId;
@@ -56,6 +63,7 @@ class TeamMatchSummary {
   final String? winnerTeamName;
   final String status;
   final DateTime? createdAt;
+  final DateTime? playedAt;
 
   bool get isPending => status == 'PENDING';
   bool get isMatched => status == 'MATCHED';
@@ -81,6 +89,66 @@ class TeamMatchSummary {
       winnerTeamName: json['winnerTeamName'] as String?,
       status: json['status'] as String,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      playedAt: DateTime.tryParse(json['playedAt']?.toString() ?? ''),
+    );
+  }
+}
+
+class TeamMatchDetail {
+  const TeamMatchDetail({
+    required this.teamMatchId,
+    required this.homeTeamId,
+    required this.homeTeamName,
+    required this.homeTeamRating,
+    required this.awayTeamId,
+    required this.awayTeamName,
+    required this.awayTeamRating,
+    required this.status,
+    required this.createdAt,
+    required this.playedAt,
+    required this.homeScore,
+    required this.awayScore,
+    required this.winnerTeamId,
+    required this.winnerTeamName,
+  });
+
+  final int teamMatchId;
+  final int homeTeamId;
+  final String homeTeamName;
+  final int homeTeamRating;
+  final int? awayTeamId;
+  final String? awayTeamName;
+  final int? awayTeamRating;
+  final String status;
+  final DateTime? createdAt;
+  final DateTime? playedAt;
+  final int? homeScore;
+  final int? awayScore;
+  final int? winnerTeamId;
+  final String? winnerTeamName;
+
+  bool get isPending => status == 'PENDING';
+  bool get isMatched => status == 'MATCHED';
+  bool get isCompleted => status == 'COMPLETED';
+  bool get hasResult => homeScore != null && awayScore != null;
+  bool get isDraw => hasResult && homeScore == awayScore;
+
+  factory TeamMatchDetail.fromJson(Map<String, dynamic> json) {
+    return TeamMatchDetail(
+      teamMatchId: (json['teamMatchId'] as num).toInt(),
+      homeTeamId: (json['homeTeamId'] as num).toInt(),
+      homeTeamName: json['homeTeamName'] as String,
+      homeTeamRating: (json['homeTeamRating'] as num).toInt(),
+      awayTeamId: (json['awayTeamId'] as num?)?.toInt(),
+      awayTeamName: json['awayTeamName'] as String?,
+      awayTeamRating: (json['awayTeamRating'] as num?)?.toInt(),
+      status: json['status'] as String,
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      playedAt: DateTime.tryParse(json['playedAt']?.toString() ?? ''),
+      homeScore: (json['homeScore'] as num?)?.toInt(),
+      awayScore: (json['awayScore'] as num?)?.toInt(),
+      winnerTeamId: (json['winnerTeamId'] as num?)?.toInt(),
+      winnerTeamName: json['winnerTeamName'] as String?,
     );
   }
 }

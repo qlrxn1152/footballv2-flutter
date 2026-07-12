@@ -9,6 +9,8 @@ void main() {
       'homeTeamName': 'teamA',
       'homeTeamRating': 1500,
       'status': 'PENDING',
+      'playedAt': '2026-07-20T18:30:00',
+      'createdAt': '2026-07-12T10:00:00',
     });
 
     expect(result.teamMatchId, 12);
@@ -16,6 +18,7 @@ void main() {
     expect(result.homeTeamName, 'teamA');
     expect(result.homeTeamRating, 1500);
     expect(result.isPending, isTrue);
+    expect(result.playedAt, DateTime(2026, 7, 20, 18, 30));
   });
 
   test('PENDING 매치 목록 응답을 변환한다', () {
@@ -29,6 +32,7 @@ void main() {
       'awayTeamRating': null,
       'status': 'PENDING',
       'createdAt': '2026-07-11T14:30:00',
+      'playedAt': '2026-07-20T18:30:00',
     });
 
     expect(match.teamMatchId, 21);
@@ -37,6 +41,32 @@ void main() {
     expect(match.status, 'PENDING');
     expect(match.isPending, isTrue);
     expect(match.createdAt, DateTime(2026, 7, 11, 14, 30));
+    expect(match.playedAt, DateTime(2026, 7, 20, 18, 30));
+  });
+
+  test('완료된 매치 상세 응답을 변환한다', () {
+    final detail = TeamMatchDetail.fromJson({
+      'teamMatchId': 23,
+      'homeTeamId': 3,
+      'homeTeamName': 'teamA',
+      'homeTeamRating': 1512,
+      'awayTeamId': 4,
+      'awayTeamName': 'teamB',
+      'awayTeamRating': 1488,
+      'status': 'COMPLETED',
+      'createdAt': '2026-07-12T10:00:00',
+      'playedAt': '2026-07-20T18:30:00',
+      'homeScore': 3,
+      'awayScore': 1,
+      'winnerTeamId': 3,
+      'winnerTeamName': 'teamA',
+    });
+
+    expect(detail.teamMatchId, 23);
+    expect(detail.playedAt, DateTime(2026, 7, 20, 18, 30));
+    expect(detail.hasResult, isTrue);
+    expect(detail.isCompleted, isTrue);
+    expect(detail.winnerTeamName, 'teamA');
   });
 
   test('MATCHED 매치 목록 응답을 변환한다', () {
