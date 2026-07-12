@@ -38,6 +38,19 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
     await ref.read(provider.future);
   }
 
+  void _invalidateTeamHistory(
+    Iterable<int> teamIds,
+    Iterable<String> statuses,
+  ) {
+    for (final teamId in teamIds.toSet()) {
+      for (final status in statuses) {
+        ref.invalidate(
+          teamMatchHistoryProvider((teamId: teamId, status: status)),
+        );
+      }
+    }
+  }
+
   Future<void> _openRegistration() async {
     setState(() => _openingRegistration = true);
     try {
@@ -61,6 +74,7 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
       if (result == null || !mounted) return;
 
       ref.invalidate(teamMatchesProvider('PENDING'));
+      _invalidateTeamHistory([result.homeTeamId], const ['PENDING']);
       setState(() => _status = _MatchStatusTab.pending);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('매치를 등록했습니다. 상대 팀을 기다립니다.')),
@@ -114,6 +128,10 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
 
       ref.invalidate(teamMatchesProvider('PENDING'));
       ref.invalidate(teamMatchesProvider('MATCHED'));
+      _invalidateTeamHistory(
+        [result.homeTeamId, result.awayTeamId],
+        const ['PENDING', 'MATCHED'],
+      );
       setState(() => _status = _MatchStatusTab.matched);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -145,6 +163,14 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
 
     ref.invalidate(teamMatchesProvider('MATCHED'));
     ref.invalidate(teamMatchesProvider('COMPLETED'));
+    ref.invalidate(teamsProvider);
+    for (final teamId in {result.homeTeamId, result.awayTeamId}) {
+      ref.invalidate(teamDetailProvider(teamId));
+    }
+    _invalidateTeamHistory(
+      [result.homeTeamId, result.awayTeamId],
+      const ['MATCHED', 'COMPLETED'],
+    );
     setState(() => _status = _MatchStatusTab.completed);
 
     final outcome = result.isDraw

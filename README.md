@@ -18,6 +18,8 @@ FootballV2 Spring Boot REST API를 사용하는 Android Flutter 앱입니다.
 - 다른 팀 리더의 PENDING 매치 수락 및 매칭 성사 처리
 - 홈 팀 리더의 MATCHED 매치 결과 입력 및 완료 처리
 - COMPLETED 매치의 최종 스코어·승리 팀·무승부 표시
+- 팀 상세의 PENDING·MATCHED·COMPLETED 상태별 공개 매치 기록
+- 결과 입력 후 변경된 팀 레이팅과 관련 목록 자동 갱신
 - 팀 가입 신청
 - 마이페이지와 현재 소속 팀 조회
 - 내 팀 가입 신청 조회·취소
@@ -69,6 +71,7 @@ GET  /api/teams
 GET  /api/team-matches?status=PENDING
 PATCH /api/team-matches/{teamMatchId}/accept
 POST /api/team-matches/{teamMatchId}/result
+GET  /api/teams/{teamId}/matches?status=PENDING
 ```
 
 ## 4. Android 앱 실행

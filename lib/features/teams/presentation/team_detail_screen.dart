@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../matches/data/team_match.dart';
+import '../../matches/data/team_match_repository.dart';
 import '../../matches/presentation/team_match_create_screen.dart';
+import '../../matches/presentation/team_match_history_section.dart';
 import '../../members/data/member_repository.dart';
 import '../data/team_models.dart';
 import '../data/team_repository.dart';
@@ -29,6 +31,11 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
     ref.invalidate(teamDetailProvider(widget.teamId));
     ref.invalidate(teamMembersProvider(widget.teamId));
     ref.invalidate(myTeamJoinRequestsProvider);
+    for (final status in const ['PENDING', 'MATCHED', 'COMPLETED']) {
+      ref.invalidate(
+        teamMatchHistoryProvider((teamId: widget.teamId, status: status)),
+      );
+    }
     await Future.wait([
       ref.read(teamDetailProvider(widget.teamId).future),
       ref.read(teamMembersProvider(widget.teamId).future),
@@ -118,6 +125,12 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
     );
     if (result == null || !mounted) return;
 
+    ref.invalidate(
+      teamMatchHistoryProvider((
+        teamId: widget.teamId,
+        status: 'PENDING',
+      )),
+    );
     setState(() => _registeredMatch = result);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('매치를 등록했습니다. 상대 팀을 기다립니다.')),
@@ -231,6 +244,8 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                           : const Icon(Icons.person_add_alt_1),
                       label: const Text('팀 가입 신청'),
                     ),
+                  const SizedBox(height: 24),
+                  TeamMatchHistorySection(teamId: team.teamId),
                   const SizedBox(height: 24),
                   Row(
                     children: [
