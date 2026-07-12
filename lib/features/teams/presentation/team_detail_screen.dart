@@ -144,6 +144,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
       return;
     }
 
+    if (!mounted) return;
     final result = await Navigator.of(context).push<TeamMatchCreateResult>(
       MaterialPageRoute(
         builder: (_) => TeamMatchCreateScreen(
@@ -222,13 +223,13 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         activeMatch.when(
-                          loading: () => const FilledButton.icon(
+                          loading: () => FilledButton.icon(
                             onPressed: null,
-                            icon: SizedBox.square(
+                            icon: const SizedBox.square(
                               dimension: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
-                            label: Text('매치 상태 확인 중'),
+                            label: const Text('매치 상태 확인 중'),
                           ),
                           error: (_, _) => OutlinedButton.icon(
                             onPressed: () => ref.invalidate(

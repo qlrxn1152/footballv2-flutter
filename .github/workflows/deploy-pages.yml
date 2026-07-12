@@ -30,7 +30,10 @@ jobs:
           pub-cache: true
 
       - name: Create web platform
-        run: flutter create --project-name footballv2_flutter --org com.daehoon --platforms web --no-pub .
+        run: |
+          TEMP_WEB_ROOT="$RUNNER_TEMP/footballv2_flutter_web"
+          flutter create --project-name footballv2_flutter --org com.daehoon --platforms web --no-pub "$TEMP_WEB_ROOT"
+          cp -R "$TEMP_WEB_ROOT/web" .
 
       - name: Configure web app
         run: |
