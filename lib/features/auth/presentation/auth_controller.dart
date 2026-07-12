@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/session/auth_session.dart';
+import '../../matches/data/team_match_repository.dart';
+import '../../members/data/member_repository.dart';
+import '../../teams/data/team_repository.dart';
 import '../data/auth_repository.dart';
 
 enum AuthStatus { initializing, unauthenticated, authenticated }
@@ -66,6 +69,7 @@ class AuthController extends Notifier<AuthState> {
         username: username,
         password: password,
       );
+      _invalidateSessionData();
       state = AuthState.authenticated(session);
       return true;
     } catch (error) {
@@ -85,6 +89,7 @@ class AuthController extends Notifier<AuthState> {
         username: username,
         password: password,
       );
+      _invalidateSessionData();
       state = AuthState.authenticated(session);
       return true;
     } catch (error) {
@@ -95,7 +100,19 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> logout() async {
     await _repository.logout();
+    _invalidateSessionData();
     state = const AuthState.unauthenticated();
+  }
+
+  void _invalidateSessionData() {
+    ref.invalidate(memberRankingsProvider);
+    ref.invalidate(memberMeProvider);
+    ref.invalidate(myTeamJoinRequestsProvider);
+    ref.invalidate(teamsProvider);
+    for (final status in const ['PENDING', 'MATCHED', 'COMPLETED']) {
+      ref.invalidate(teamMatchesProvider(status));
+    }
+    ref.invalidate(allTeamMatchesProvider);
   }
 
   void clearError() {

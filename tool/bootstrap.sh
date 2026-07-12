@@ -24,17 +24,42 @@ if [[ ! -d "android" ]]; then
   cp "$TEMP_ROOT/footballv2_flutter/.metadata" "$PROJECT_ROOT/.metadata"
 fi
 
+if [[ ! -d "web" ]]; then
+  TEMP_WEB_ROOT="$(mktemp -d)"
+
+  flutter create \
+    --project-name footballv2_flutter \
+    --org com.daehoon \
+    --platforms web \
+    --no-pub \
+    "$TEMP_WEB_ROOT/footballv2_flutter"
+
+  cp -R "$TEMP_WEB_ROOT/footballv2_flutter/web" "$PROJECT_ROOT/web"
+  rm -rf "$TEMP_WEB_ROOT"
+fi
+
+"$PROJECT_ROOT/tool/configure_web.sh"
+
 GRADLE_FILE="android/app/build.gradle.kts"
 if [[ -f "$GRADLE_FILE" ]]; then
   sed -i.bak 's/minSdk = flutter.minSdkVersion/minSdk = 23/' "$GRADLE_FILE"
   rm -f "$GRADLE_FILE.bak"
 fi
 
-MANIFEST_FILE="android/app/src/main/AndroidManifest.xml"
-if [[ -f "$MANIFEST_FILE" ]] && ! grep -q 'usesCleartextTraffic' "$MANIFEST_FILE"; then
-  sed -i.bak 's/<application/<application android:usesCleartextTraffic="true"/' "$MANIFEST_FILE"
-  rm -f "$MANIFEST_FILE.bak"
+MAIN_MANIFEST_FILE="android/app/src/main/AndroidManifest.xml"
+if [[ -f "$MAIN_MANIFEST_FILE" ]] && grep -q 'usesCleartextTraffic="true"' "$MAIN_MANIFEST_FILE"; then
+  sed -i.bak 's/ android:usesCleartextTraffic="true"//' "$MAIN_MANIFEST_FILE"
+  rm -f "$MAIN_MANIFEST_FILE.bak"
 fi
+
+DEBUG_MANIFEST_FILE="android/app/src/debug/AndroidManifest.xml"
+mkdir -p "$(dirname "$DEBUG_MANIFEST_FILE")"
+printf '%s\n' \
+  '<manifest xmlns:android="http://schemas.android.com/apk/res/android">' \
+  '    <uses-permission android:name="android.permission.INTERNET" />' \
+  '    <application android:usesCleartextTraffic="true" />' \
+  '</manifest>' \
+  > "$DEBUG_MANIFEST_FILE"
 
 flutter pub get
 flutter analyze

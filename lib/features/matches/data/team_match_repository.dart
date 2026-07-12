@@ -137,6 +137,20 @@ final allTeamMatchesProvider =
       return List.unmodifiable(matches);
     });
 
+final activeTeamMatchProvider = FutureProvider.autoDispose
+    .family<TeamMatchSummary?, int>((ref, teamId) async {
+      final lists = await Future.wait([
+        ref.watch(teamMatchesProvider('PENDING').future),
+        ref.watch(teamMatchesProvider('MATCHED').future),
+      ]);
+      for (final matches in lists) {
+        for (final match in matches) {
+          if (match.includesTeam(teamId)) return match;
+        }
+      }
+      return null;
+    });
+
 typedef TeamMatchHistoryQuery = ({int teamId, String status});
 
 final teamMatchHistoryProvider = FutureProvider.autoDispose

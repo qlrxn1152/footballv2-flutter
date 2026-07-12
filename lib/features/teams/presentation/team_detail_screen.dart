@@ -36,9 +36,13 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
         teamMatchHistoryProvider((teamId: widget.teamId, status: status)),
       );
     }
+    ref.invalidate(teamMatchesProvider('PENDING'));
+    ref.invalidate(teamMatchesProvider('MATCHED'));
+    ref.invalidate(activeTeamMatchProvider(widget.teamId));
     await Future.wait([
       ref.read(teamDetailProvider(widget.teamId).future),
       ref.read(teamMembersProvider(widget.teamId).future),
+      ref.read(activeTeamMatchProvider(widget.teamId).future),
     ]);
   }
 
@@ -114,6 +118,32 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
   }
 
   Future<void> _openMatchRegistration(TeamDetail team) async {
+    ref.invalidate(activeTeamMatchProvider(team.teamId));
+    try {
+      final activeMatch = await ref.read(
+        activeTeamMatchProvider(team.teamId).future,
+      );
+      if (activeMatch != null) {
+        if (!mounted) return;
+        final message = activeMatch.isPending
+            ? '이미 등록된 매치 요청이 존재합니다.'
+            : '이미 진행 중인 매치가 존재합니다.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+        return;
+      }
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is ApiException
+          ? error.message
+          : '현재 매치 상태를 확인하지 못했습니다.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+      return;
+    }
+
     final result = await Navigator.of(context).push<TeamMatchCreateResult>(
       MaterialPageRoute(
         builder: (_) => TeamMatchCreateScreen(
@@ -131,6 +161,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
         status: 'PENDING',
       )),
     );
+    ref.invalidate(activeTeamMatchProvider(widget.teamId));
     setState(() => _registeredMatch = result);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('매치를 등록했습니다. 상대 팀을 기다립니다.')),
@@ -143,6 +174,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
     final members = ref.watch(teamMembersProvider(widget.teamId));
     final myProfile = ref.watch(memberMeProvider);
     final myJoinRequests = ref.watch(myTeamJoinRequestsProvider);
+    final activeMatch = ref.watch(activeTeamMatchProvider(widget.teamId));
     final memberId = ref.watch(authControllerProvider).session!.memberId;
 
     return Scaffold(
@@ -189,14 +221,38 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (_registeredMatch == null)
-                          FilledButton.icon(
-                            onPressed: () => _openMatchRegistration(team),
-                            icon: const Icon(Icons.sports_soccer),
-                            label: const Text('매치 등록'),
-                          )
-                        else
-                          _RegisteredMatchBanner(match: _registeredMatch!),
+                        activeMatch.when(
+                          loading: () => const FilledButton.icon(
+                            onPressed: null,
+                            icon: SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            label: Text('매치 상태 확인 중'),
+                          ),
+                          error: (_, _) => OutlinedButton.icon(
+                            onPressed: () => ref.invalidate(
+                              activeTeamMatchProvider(widget.teamId),
+                            ),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('매치 상태 다시 확인'),
+                          ),
+                          data: (match) {
+                            if (match != null) {
+                              return _ActiveMatchBanner(match: match);
+                            }
+                            if (_registeredMatch != null) {
+                              return _RegisteredMatchBanner(
+                                match: _registeredMatch!,
+                              );
+                            }
+                            return FilledButton.icon(
+                              onPressed: () => _openMatchRegistration(team),
+                              icon: const Icon(Icons.sports_soccer),
+                              label: const Text('매치 등록'),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 9),
                         FilledButton.icon(
                           onPressed: () => Navigator.of(context).push<void>(
@@ -462,6 +518,49 @@ class _RegisteredMatchBanner extends StatelessWidget {
                 const Text(
                   '상대 팀 대기 중',
                   style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+                Text('매치 번호 #${match.teamMatchId} · ${match.status}'),
+                Text('경기 ${_formatMatchDateTime(match.playedAt)}'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActiveMatchBanner extends StatelessWidget {
+  const _ActiveMatchBanner({required this.match});
+
+  final TeamMatchSummary match;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPending = match.isPending;
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: isPending
+            ? const Color(0xFFFFF3BF)
+            : Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isPending
+                ? Icons.hourglass_top_outlined
+                : Icons.sports_soccer_outlined,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isPending ? '등록한 매치 대기 중' : '진행 중인 매치가 있습니다',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 Text('매치 번호 #${match.teamMatchId} · ${match.status}'),
                 Text('경기 ${_formatMatchDateTime(match.playedAt)}'),
