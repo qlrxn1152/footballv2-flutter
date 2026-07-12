@@ -1,0 +1,43 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Create web platform
+        run: |
+          TEMP_WEB_ROOT="$RUNNER_TEMP/footballv2_flutter_web"
+          flutter create --project-name footballv2_flutter --org com.daehoon --platforms web --no-pub "$TEMP_WEB_ROOT"
+          cp -R "$TEMP_WEB_ROOT/web" .
+
+      - name: Configure web app
+        run: |
+          chmod +x tool/configure_web.sh
+          ./tool/configure_web.sh
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test

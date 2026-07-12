@@ -70,6 +70,29 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
         throw const ApiException('소속 팀의 팀장만 매치를 등록할 수 있습니다.');
       }
 
+      ref.invalidate(teamMatchesProvider('PENDING'));
+      ref.invalidate(teamMatchesProvider('MATCHED'));
+      final activeLists = await Future.wait([
+        ref.read(teamMatchesProvider('PENDING').future),
+        ref.read(teamMatchesProvider('MATCHED').future),
+      ]);
+      TeamMatchSummary? activeMatch;
+      for (final match in activeLists.expand((matches) => matches)) {
+        if (match.includesTeam(teamId)) {
+          activeMatch = match;
+          break;
+        }
+      }
+      if (activeMatch != null) {
+        throw ApiException(
+          activeMatch.isPending
+              ? '이미 등록된 매치 요청이 존재합니다.'
+              : '이미 진행 중인 매치가 존재합니다.',
+          code: 'DUPLICATE_TEAM_MATCH',
+          statusCode: 409,
+        );
+      }
+
       final team = await ref.read(teamDetailProvider(teamId).future);
       if (!mounted) return;
       final result = await Navigator.of(context).push<TeamMatchCreateResult>(

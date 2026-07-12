@@ -119,6 +119,12 @@ class _TeamMatchCreateScreenState
       });
     } catch (error) {
       if (!mounted) return;
+      if (error is ApiException && error.code == 'DUPLICATE_TEAM_MATCH') {
+        ref.invalidate(teamMatchesProvider('PENDING'));
+        ref.invalidate(teamMatchesProvider('MATCHED'));
+        ref.invalidate(allTeamMatchesProvider);
+        ref.invalidate(activeTeamMatchProvider(widget.teamId));
+      }
       setState(() {
         _submitting = false;
         _errorMessage = error is ApiException
