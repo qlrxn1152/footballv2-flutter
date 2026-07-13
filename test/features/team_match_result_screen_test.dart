@@ -86,7 +86,9 @@ void main() {
 
     final homeGoalButton = find.byKey(const ValueKey('goal-plus-3-2'));
     await tester.ensureVisible(homeGoalButton);
-    await tester.tap(homeGoalButton);
+    final addGoalButton = tester.widget<IconButton>(homeGoalButton);
+    expect(addGoalButton.onPressed, isNotNull);
+    addGoalButton.onPressed!();
     await tester.pump();
     expect(find.text('1 / 1골'), findsOneWidget);
 

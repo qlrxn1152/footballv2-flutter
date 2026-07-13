@@ -451,7 +451,6 @@ class _GoalTeamCard extends StatelessWidget {
                         _GoalMemberRow(
                           member: member,
                           goalCount: goalCountOf(member.memberId),
-                          canIncrease: assignedGoals < expectedScore,
                           onChanged: onGoalChanged,
                         ),
                     ],
@@ -469,13 +468,11 @@ class _GoalMemberRow extends StatelessWidget {
   const _GoalMemberRow({
     required this.member,
     required this.goalCount,
-    required this.canIncrease,
     required this.onChanged,
   });
 
   final TeamMember member;
   final int goalCount;
-  final bool canIncrease;
   final void Function(TeamMember member, int delta) onChanged;
 
   @override
@@ -520,7 +517,7 @@ class _GoalMemberRow extends StatelessWidget {
           ),
           IconButton(
             key: ValueKey('goal-plus-${member.teamId}-${member.memberId}'),
-            onPressed: canIncrease ? () => onChanged(member, 1) : null,
+            onPressed: () => onChanged(member, 1),
             icon: const Icon(Icons.add_circle_outline),
             tooltip: '득점 1 추가',
           ),
