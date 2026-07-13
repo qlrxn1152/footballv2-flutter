@@ -61,11 +61,16 @@ class TeamMatchRepository {
     required int teamMatchId,
     required int homeScore,
     required int awayScore,
+    required List<TeamMatchGoalInput> goals,
   }) {
     return runApi(() async {
       final response = await _apiClient.dio.post<Object?>(
         '/api/team-matches/$teamMatchId/result',
-        data: {'homeScore': homeScore, 'awayScore': awayScore},
+        data: {
+          'homeScore': homeScore,
+          'awayScore': awayScore,
+          'goals': goals.map((goal) => goal.toJson()).toList(growable: false),
+        },
       );
       return TeamMatchResult.fromJson(jsonMap(response.data));
     });

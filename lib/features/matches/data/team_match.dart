@@ -188,6 +188,50 @@ class TeamMatchAcceptResult {
   }
 }
 
+class TeamMatchGoalInput {
+  const TeamMatchGoalInput({
+    required this.teamId,
+    required this.scorerMemberId,
+    required this.goalCount,
+  });
+
+  final int teamId;
+  final int scorerMemberId;
+  final int goalCount;
+
+  Map<String, dynamic> toJson() => {
+    'teamId': teamId,
+    'scorerMemberId': scorerMemberId,
+    'goalCount': goalCount,
+  };
+}
+
+class TeamMatchGoal {
+  const TeamMatchGoal({
+    required this.teamId,
+    required this.teamMatchId,
+    required this.scorerMemberId,
+    required this.scorerUsername,
+    required this.goalCount,
+  });
+
+  final int teamId;
+  final int teamMatchId;
+  final int scorerMemberId;
+  final String scorerUsername;
+  final int goalCount;
+
+  factory TeamMatchGoal.fromJson(Map<String, dynamic> json) {
+    return TeamMatchGoal(
+      teamId: (json['teamId'] as num).toInt(),
+      teamMatchId: (json['teamMatchId'] as num).toInt(),
+      scorerMemberId: (json['scorerMemberId'] as num).toInt(),
+      scorerUsername: json['scorerUsername'] as String,
+      goalCount: (json['goalCount'] as num).toInt(),
+    );
+  }
+}
+
 class TeamMatchResult {
   const TeamMatchResult({
     required this.teamMatchId,
@@ -200,6 +244,7 @@ class TeamMatchResult {
     required this.winnerTeamId,
     required this.winnerTeamName,
     required this.status,
+    required this.goals,
   });
 
   final int teamMatchId;
@@ -212,6 +257,7 @@ class TeamMatchResult {
   final int? winnerTeamId;
   final String? winnerTeamName;
   final String status;
+  final List<TeamMatchGoal> goals;
 
   bool get isDraw => winnerTeamId == null;
   bool get isCompleted => status == 'COMPLETED';
@@ -228,6 +274,9 @@ class TeamMatchResult {
       winnerTeamId: (json['winnerTeamId'] as num?)?.toInt(),
       winnerTeamName: json['winnerTeamName'] as String?,
       status: json['status'] as String,
+      goals: (json['goals'] as List<dynamic>? ?? const [])
+          .map((item) => TeamMatchGoal.fromJson(item as Map<String, dynamic>))
+          .toList(growable: false),
     );
   }
 }

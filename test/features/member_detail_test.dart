@@ -7,6 +7,7 @@ void main() {
       'memberId': 1,
       'username': 'captain',
       'memberRating': 1700,
+      'totalGoalCount': 12,
       'teamId': 3,
       'teamName': 'FootMasters',
       'teamRole': 'LEADER',
@@ -16,6 +17,7 @@ void main() {
 
     expect(member.memberId, 1);
     expect(member.memberRating, 1700);
+    expect(member.totalGoalCount, 12);
     expect(member.hasTeam, isTrue);
     expect(member.isLeader, isTrue);
     expect(member.teamName, 'FootMasters');
@@ -27,6 +29,7 @@ void main() {
       'memberId': 2,
       'username': 'freeAgent',
       'memberRating': 1500,
+      'totalGoalCount': 0,
       'teamId': null,
       'teamName': null,
       'teamRole': null,
@@ -35,6 +38,7 @@ void main() {
     });
 
     expect(member.hasTeam, isFalse);
+    expect(member.totalGoalCount, 0);
     expect(member.isLeader, isFalse);
     expect(member.teamId, isNull);
     expect(member.teamName, isNull);
