@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/session/auth_session.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../../matches/data/team_match_repository.dart';
 import '../../members/data/member_repository.dart';
 import '../../teams/data/team_repository.dart';
@@ -105,6 +106,7 @@ class AuthController extends Notifier<AuthState> {
   }
 
   void _invalidateSessionData() {
+    ref.invalidate(homeTabIndexProvider);
     ref.invalidate(memberRankingsProvider);
     ref.invalidate(memberMeProvider);
     ref.invalidate(myTeamJoinRequestsProvider);

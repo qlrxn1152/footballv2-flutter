@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../../matches/data/team_match.dart';
 import '../../matches/data/team_match_repository.dart';
 import '../../matches/presentation/team_match_create_screen.dart';
@@ -26,6 +27,11 @@ class TeamDetailScreen extends ConsumerStatefulWidget {
 class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
   bool _joining = false;
   TeamMatchCreateResult? _registeredMatch;
+
+  void _selectHomeTab(int index) {
+    ref.read(homeTabIndexProvider.notifier).select(index);
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
 
   Future<void> _refresh() async {
     ref.invalidate(teamDetailProvider(widget.teamId));
@@ -180,6 +186,10 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('팀 상세')),
+      bottomNavigationBar: FootballNavigationBar(
+        selectedIndex: 1,
+        onDestinationSelected: _selectHomeTab,
+      ),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: detail.when(
