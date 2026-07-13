@@ -166,6 +166,29 @@ void main() {
       'winnerTeamId': 3,
       'winnerTeamName': 'teamA',
       'status': 'COMPLETED',
+      'goals': [
+        {
+          'teamId': 3,
+          'teamMatchId': 22,
+          'scorerMemberId': 2,
+          'scorerUsername': 'test',
+          'goalCount': 2,
+        },
+        {
+          'teamId': 3,
+          'teamMatchId': 22,
+          'scorerMemberId': 7,
+          'scorerUsername': 'playerA',
+          'goalCount': 1,
+        },
+        {
+          'teamId': 4,
+          'teamMatchId': 22,
+          'scorerMemberId': 6,
+          'scorerUsername': 'away',
+          'goalCount': 1,
+        },
+      ],
     });
 
     expect(result.homeScore, 3);
@@ -173,6 +196,23 @@ void main() {
     expect(result.winnerTeamName, 'teamA');
     expect(result.isDraw, isFalse);
     expect(result.isCompleted, isTrue);
+    expect(result.goals, hasLength(3));
+    expect(result.goals.first.scorerUsername, 'test');
+    expect(result.goals.first.goalCount, 2);
+  });
+
+  test('득점자 입력을 API 요청 형식으로 변환한다', () {
+    const goal = TeamMatchGoalInput(
+      teamId: 3,
+      scorerMemberId: 2,
+      goalCount: 2,
+    );
+
+    expect(goal.toJson(), {
+      'teamId': 3,
+      'scorerMemberId': 2,
+      'goalCount': 2,
+    });
   });
 
   test('무승부 결과는 승리 팀이 없다', () {

@@ -3,6 +3,7 @@ class MemberDetail {
     required this.memberId,
     required this.username,
     required this.memberRating,
+    required this.totalGoalCount,
     required this.createdAt,
     this.teamId,
     this.teamName,
@@ -13,6 +14,7 @@ class MemberDetail {
   final int memberId;
   final String username;
   final int memberRating;
+  final int totalGoalCount;
   final int? teamId;
   final String? teamName;
   final String? teamRole;
@@ -27,6 +29,7 @@ class MemberDetail {
       memberId: (json['memberId'] as num).toInt(),
       username: json['username'] as String,
       memberRating: (json['memberRating'] as num).toInt(),
+      totalGoalCount: (json['totalGoalCount'] as num?)?.toInt() ?? 0,
       teamId: (json['teamId'] as num?)?.toInt(),
       teamName: json['teamName'] as String?,
       teamRole: json['teamRole'] as String?,

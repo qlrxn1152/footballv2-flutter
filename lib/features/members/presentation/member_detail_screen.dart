@@ -65,6 +65,12 @@ class _MemberDetailContent extends StatelessWidget {
                 ),
                 const Divider(height: 24),
                 _InfoRow(
+                  icon: Icons.sports_soccer_outlined,
+                  label: '총 득점',
+                  value: '${member.totalGoalCount}골',
+                ),
+                const Divider(height: 24),
+                _InfoRow(
                   icon: Icons.calendar_today_outlined,
                   label: '가입일',
                   value: _formatDate(member.createdAt),
