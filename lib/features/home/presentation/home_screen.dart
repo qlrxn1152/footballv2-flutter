@@ -7,6 +7,7 @@ import '../../members/data/member_repository.dart';
 import '../../members/presentation/member_ranking_screen.dart';
 import '../../teams/data/team_repository.dart';
 import '../../teams/presentation/team_list_screen.dart';
+import 'home_navigation.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -17,8 +18,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _index = 0;
-
   static const _titles = ['선수 랭킹', '팀', '매치', '내 정보'];
   static const _pages = [
     MemberRankingScreen(),
@@ -49,21 +48,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _selectTab(int index) {
-    setState(() => _index = index);
+    ref.read(homeTabIndexProvider.notifier).select(index);
     _refreshTab(index);
   }
 
   @override
   Widget build(BuildContext context) {
+    final index = ref.watch(homeTabIndexProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _titles[_index],
+          _titles[index],
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
           IconButton(
-            onPressed: () => _refreshTab(_index),
+            onPressed: () => _refreshTab(index),
             tooltip: '새로고침',
             icon: const Icon(Icons.refresh),
           ),
@@ -75,32 +76,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       // 선택된 화면만 마운트해 탭 진입 시 해당 autoDispose provider가
       // 항상 새 API 요청을 시작하도록 합니다.
-      body: _pages[_index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
+      body: _pages[index],
+      bottomNavigationBar: FootballNavigationBar(
+        selectedIndex: index,
         onDestinationSelected: _selectTab,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.leaderboard_outlined),
-            selectedIcon: Icon(Icons.leaderboard),
-            label: '선수',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: '팀',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.sports_soccer),
-            selectedIcon: Icon(Icons.sports_soccer),
-            label: '매치',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: '내 정보',
-          ),
-        ],
       ),
     );
   }
