@@ -33,7 +33,12 @@ class AuthRepository {
         data: {'username': username, 'password': password},
       );
       final session = AuthSession.fromLoginJson(jsonMap(response.data));
-      await _sessionStore.save(session);
+      await _sessionStore.save(session).timeout(
+        const Duration(seconds: 8),
+        onTimeout: () => throw const ApiException(
+          '로그인 정보를 저장하지 못했습니다. 페이지를 새로고침한 후 다시 시도해주세요.',
+        ),
+      );
       return session;
     });
   }

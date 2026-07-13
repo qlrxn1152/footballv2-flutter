@@ -24,17 +24,18 @@ class SecureSessionStore implements SessionStore {
 
   @override
   Future<void> save(AuthSession session) async {
-    await Future.wait([
-      _storage.write(key: _tokenKey, value: session.accessToken),
-      _storage.write(key: _tokenTypeKey, value: session.tokenType),
-      _storage.write(
-        key: _expiresAtKey,
-        value: session.expiresAt.toIso8601String(),
-      ),
-      _storage.write(key: _memberIdKey, value: '${session.memberId}'),
-      _storage.write(key: _usernameKey, value: session.username),
-      _storage.write(key: _ratingKey, value: '${session.memberRating}'),
-    ]);
+    // flutter_secure_storage의 웹 구현은 첫 write에서 WebCrypto 암호키를
+    // 생성합니다. 여러 write를 동시에 시작하면 서로 다른 키 생성이 겹쳐
+    // 일부 값이 복호화되지 않을 수 있으므로 세션 값은 순서대로 저장합니다.
+    await _storage.write(key: _tokenKey, value: session.accessToken);
+    await _storage.write(key: _tokenTypeKey, value: session.tokenType);
+    await _storage.write(
+      key: _expiresAtKey,
+      value: session.expiresAt.toIso8601String(),
+    );
+    await _storage.write(key: _memberIdKey, value: '${session.memberId}');
+    await _storage.write(key: _usernameKey, value: session.username);
+    await _storage.write(key: _ratingKey, value: '${session.memberRating}');
   }
 
   @override
