@@ -36,6 +36,9 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('팀 레이팅 순 · 총 1개 팀'), findsOneWidget);
+    expect(find.text('순위'), findsOneWidget);
+    expect(find.text('레이팅'), findsOneWidget);
+    expect(find.text('인원'), findsOneWidget);
     expect(find.text('teamA'), findsOneWidget);
     expect(find.text('팀 만들기'), findsOneWidget);
   });

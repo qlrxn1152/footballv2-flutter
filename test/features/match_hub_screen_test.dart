@@ -141,6 +141,56 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('경기일자를 가로로 표시하고 선택한 날짜의 매치만 보여준다', (
+    tester,
+  ) async {
+    final firstDateMatch = TeamMatchSummary.fromJson({
+      'teamMatchId': 31,
+      'homeTeamId': 11,
+      'homeTeamName': 'july20',
+      'homeTeamRating': 1500,
+      'status': 'PENDING',
+      'playedAt': '2026-07-20T20:00:00',
+      'createdAt': '2026-07-14T12:00:00',
+    });
+    final secondDateMatch = TeamMatchSummary.fromJson({
+      'teamMatchId': 32,
+      'homeTeamId': 12,
+      'homeTeamName': 'july21',
+      'homeTeamRating': 1510,
+      'status': 'PENDING',
+      'playedAt': '2026-07-21T21:00:00',
+      'createdAt': '2026-07-14T13:00:00',
+    });
+
+    await tester.pumpWidget(
+      buildScreen(
+        homeLeader,
+        pending: [firstDateMatch, secondDateMatch],
+        matched: const [],
+        completed: const [],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('대기'));
+    await tester.pumpAndSettle();
+    expect(find.text('경기 일정'), findsOneWidget);
+    expect(find.text('07.20'), findsOneWidget);
+    expect(find.text('07.21'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('match-date-20260720')));
+    await tester.pumpAndSettle();
+    expect(find.text('july20'), findsOneWidget);
+    expect(find.text('july21'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('match-date-all')));
+    await tester.pumpAndSettle();
+    expect(find.text('july20'), findsOneWidget);
+    expect(find.text('july21'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('홈 팀장에게 MATCHED 매치 결과 입력 버튼을 표시한다', (tester) async {
     final ownMatchedMatch = TeamMatchSummary.fromJson({
       'teamMatchId': 24,
