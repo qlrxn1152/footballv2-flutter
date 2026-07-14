@@ -151,6 +151,50 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('매치 목록을 스크롤하면 상단 안내를 숨기고 필터만 작게 유지한다', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final manyPendingMatches = List.generate(
+      8,
+      (index) => TeamMatchSummary.fromJson({
+        'teamMatchId': 100 + index,
+        'homeTeamId': 20 + index,
+        'homeTeamName': 'scroll-team-$index',
+        'homeTeamRating': 1500 + index,
+        'status': 'PENDING',
+        'createdAt': '2026-07-14T12:00:00',
+      }),
+    );
+
+    await tester.pumpWidget(
+      buildScreen(
+        homeLeader,
+        pending: manyPendingMatches,
+        matched: const [],
+        completed: const [],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('match-hero-card')), findsOneWidget);
+
+    await tester.drag(find.byType(ListView).last, const Offset(0, -220));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('match-hero-card')), findsNothing);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('match-schedule-panel'))).height,
+      lessThan(42),
+    );
+    for (final label in const ['전체', '대기', '매칭', '완료']) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('경기일자를 가로로 표시하고 선택한 날짜의 매치만 보여준다', (
     tester,
   ) async {
