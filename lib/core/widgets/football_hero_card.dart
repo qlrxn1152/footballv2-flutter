@@ -10,6 +10,7 @@ class FootballHeroCard extends StatelessWidget {
     required this.icon,
     this.action,
     this.content,
+    this.compact = false,
     super.key,
   });
 
@@ -19,13 +20,14 @@ class FootballHeroCard extends StatelessWidget {
   final IconData icon;
   final Widget? action;
   final Widget? content;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(compact ? 22 : 26),
         gradient: const LinearGradient(
           colors: [AppTheme.navy, AppTheme.fieldGreen],
           begin: Alignment.topLeft,
@@ -54,7 +56,7 @@ class FootballHeroCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(22),
+            padding: EdgeInsets.all(compact ? 16 : 22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -62,15 +64,19 @@ class FootballHeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: compact ? 42 : 48,
+                      height: compact ? 42 : 48,
                       decoration: BoxDecoration(
                         color: AppTheme.lime,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(compact ? 14 : 16),
                       ),
-                      child: Icon(icon, color: AppTheme.navy, size: 27),
+                      child: Icon(
+                        icon,
+                        color: AppTheme.navy,
+                        size: compact ? 23 : 27,
+                      ),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: compact ? 11 : 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,23 +90,24 @@ class FootballHeroCard extends StatelessWidget {
                               letterSpacing: 1.4,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: compact ? 2 : 4),
                           Text(
                             title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 22,
+                              fontSize: compact ? 19 : 22,
                               height: 1.15,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -0.5,
                             ),
                           ),
-                          const SizedBox(height: 5),
+                          SizedBox(height: compact ? 3 : 5),
                           Text(
                             subtitle,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.78),
-                              height: 1.35,
+                              fontSize: compact ? 12 : null,
+                              height: compact ? 1.25 : 1.35,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -114,7 +121,7 @@ class FootballHeroCard extends StatelessWidget {
                   ],
                 ),
                 if (content != null) ...[
-                  const SizedBox(height: 18),
+                  SizedBox(height: compact ? 12 : 18),
                   content!,
                 ],
               ],

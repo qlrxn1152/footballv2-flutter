@@ -102,6 +102,10 @@ void main() {
     expect(find.text('전체'), findsOneWidget);
     expect(find.text('등록한 매치 대기 중'), findsOneWidget);
     expect(find.text('teamE 승리'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('match-hero-card'))).height,
+      lessThan(190),
+    );
 
     await tester.tap(find.text('대기'));
     await tester.pumpAndSettle();
