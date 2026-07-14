@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../analytics/presentation/daily_analytics_screen.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../members/data/member_account.dart';
 import '../../members/data/member_repository.dart';
@@ -210,6 +211,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
             ),
             const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => const DailyAnalyticsScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.analytics_outlined),
+              label: const Text('일별 사용 통계'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+              ),
+            ),
+            const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => _confirmLogout(context),
               icon: const Icon(Icons.logout),
