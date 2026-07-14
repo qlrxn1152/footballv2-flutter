@@ -106,6 +106,12 @@ void main() {
       tester.getSize(find.byKey(const ValueKey('match-hero-card'))).height,
       lessThan(190),
     );
+    final schedulePanel = tester.getRect(
+      find.byKey(const ValueKey('match-schedule-panel')),
+    );
+    for (final label in const ['전체', '대기', '매칭', '완료']) {
+      expect(schedulePanel.contains(tester.getCenter(find.text(label))), isTrue);
+    }
 
     await tester.tap(find.text('대기'));
     await tester.pumpAndSettle();

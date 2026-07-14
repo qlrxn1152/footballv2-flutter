@@ -22,6 +22,13 @@ extension on _MatchStatusTab {
     _MatchStatusTab.matched => 'MATCHED',
     _MatchStatusTab.completed => 'COMPLETED',
   };
+
+  String get label => switch (this) {
+    _MatchStatusTab.all => '전체',
+    _MatchStatusTab.pending => '대기',
+    _MatchStatusTab.matched => '매칭',
+    _MatchStatusTab.completed => '완료',
+  };
 }
 
 class MatchHubScreen extends ConsumerStatefulWidget {
@@ -281,82 +288,23 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
             onRegister: _openRegistration,
           ),
         ),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppTheme.line),
-            ),
-            child: SegmentedButton<_MatchStatusTab>(
-              showSelectedIcon: false,
-              style: ButtonStyle(
-                side: const WidgetStatePropertyAll(BorderSide.none),
-                shape: WidgetStatePropertyAll(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                backgroundColor: WidgetStateProperty.resolveWith(
-                  (states) => states.contains(WidgetState.selected)
-                      ? AppTheme.navy
-                      : Colors.transparent,
-                ),
-                foregroundColor: WidgetStateProperty.resolveWith(
-                  (states) => states.contains(WidgetState.selected)
-                      ? AppTheme.lime
-                      : AppTheme.navySoft,
-                ),
-                textStyle: const WidgetStatePropertyAll(
-                  TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ),
-              segments: const [
-                ButtonSegment(
-                  value: _MatchStatusTab.all,
-                  icon: Icon(Icons.format_list_bulleted),
-                  label: Text('전체'),
-                ),
-                ButtonSegment(
-                  value: _MatchStatusTab.pending,
-                  icon: Icon(Icons.hourglass_top_outlined),
-                  label: Text('대기'),
-                ),
-                ButtonSegment(
-                  value: _MatchStatusTab.matched,
-                  icon: Icon(Icons.handshake_outlined),
-                  label: Text('매칭'),
-                ),
-                ButtonSegment(
-                  value: _MatchStatusTab.completed,
-                  icon: Icon(Icons.emoji_events_outlined),
-                  label: Text('완료'),
-                ),
-              ],
-              selected: {_status},
-              onSelectionChanged: (selected) {
-                setState(() {
-                  _status = selected.first;
-                  _selectedPlayedDate = null;
-                });
-              },
-            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: _MatchSchedulePanel(
+            status: _status,
+            dates: availableDates,
+            selectedDate: selectedPlayedDate,
+            onStatusSelected: (status) {
+              setState(() {
+                _status = status;
+                _selectedPlayedDate = null;
+              });
+            },
+            onDateSelected: (date) {
+              setState(() => _selectedPlayedDate = date);
+            },
           ),
         ),
-        if (availableDates.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-            child: _MatchDateSelector(
-              dates: availableDates,
-              selectedDate: selectedPlayedDate,
-              onSelected: (date) {
-                setState(() => _selectedPlayedDate = date);
-              },
-            ),
-          ),
         Expanded(
           child: _MatchesView(
             status: _status,
@@ -474,20 +422,25 @@ class _MatchHeader extends StatelessWidget {
 
 }
 
-class _MatchDateSelector extends StatelessWidget {
-  const _MatchDateSelector({
+class _MatchSchedulePanel extends StatelessWidget {
+  const _MatchSchedulePanel({
+    required this.status,
     required this.dates,
     required this.selectedDate,
-    required this.onSelected,
+    required this.onStatusSelected,
+    required this.onDateSelected,
   });
 
+  final _MatchStatusTab status;
   final List<DateTime> dates;
   final DateTime? selectedDate;
-  final ValueChanged<DateTime?> onSelected;
+  final ValueChanged<_MatchStatusTab> onStatusSelected;
+  final ValueChanged<DateTime?> onDateSelected;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      key: const ValueKey('match-schedule-panel'),
       padding: const EdgeInsets.fromLTRB(14, 13, 14, 12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -511,7 +464,7 @@ class _MatchDateSelector extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${dates.length}개 날짜',
+                dates.isEmpty ? '경기일자 없음' : '${dates.length}개 날짜',
                 style: const TextStyle(
                   color: Color(0xFF65736D),
                   fontSize: 11,
@@ -521,35 +474,95 @@ class _MatchDateSelector extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 11),
-          SizedBox(
-            height: 72,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: dates.length + 1,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return _DateTile(
-                    key: const ValueKey('match-date-all'),
-                    topLabel: '전체',
-                    bottomLabel: '일정',
-                    selected: selectedDate == null,
-                    onTap: () => onSelected(null),
-                  );
-                }
-                final date = dates[index - 1];
-                return _DateTile(
-                  key: ValueKey('match-date-${_dateKey(date)}'),
-                  topLabel: _shortDate(date),
-                  bottomLabel: _weekday(date),
-                  selected: selectedDate != null &&
-                      _isSameDate(date, selectedDate!),
-                  onTap: () => onSelected(date),
-                );
-              },
+          Container(
+            key: const ValueKey('match-status-selector'),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppTheme.canvas,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Row(
+              children: [
+                for (final item in _MatchStatusTab.values)
+                  Expanded(
+                    child: _MatchStatusButton(
+                      label: item.label,
+                      selected: status == item,
+                      onTap: () => onStatusSelected(item),
+                    ),
+                  ),
+              ],
             ),
           ),
+          if (dates.isNotEmpty) ...[
+            const SizedBox(height: 11),
+            SizedBox(
+              height: 72,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: dates.length + 1,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return _DateTile(
+                      key: const ValueKey('match-date-all'),
+                      topLabel: '전체',
+                      bottomLabel: '날짜',
+                      selected: selectedDate == null,
+                      onTap: () => onDateSelected(null),
+                    );
+                  }
+                  final date = dates[index - 1];
+                  return _DateTile(
+                    key: ValueKey('match-date-${_dateKey(date)}'),
+                    topLabel: _shortDate(date),
+                    bottomLabel: _weekday(date),
+                    selected: selectedDate != null &&
+                        _isSameDate(date, selectedDate!),
+                    onTap: () => onDateSelected(date),
+                  );
+                },
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _MatchStatusButton extends StatelessWidget {
+  const _MatchStatusButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppTheme.navy : Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          height: 38,
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected ? AppTheme.lime : AppTheme.navySoft,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
