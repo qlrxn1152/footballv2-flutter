@@ -184,10 +184,14 @@ void main() {
     expect(find.text('july20'), findsOneWidget);
     expect(find.text('july21'), findsNothing);
 
+    await tester.tap(find.byKey(const ValueKey('match-date-20260721')));
+    await tester.pumpAndSettle();
+    expect(find.text('july20'), findsNothing);
+    expect(find.text('july21'), findsOneWidget);
+
     await tester.tap(find.byKey(const ValueKey('match-date-all')));
     await tester.pumpAndSettle();
     expect(find.text('july20'), findsOneWidget);
-    expect(find.text('july21'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
