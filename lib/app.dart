@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/config/brand_config.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_controller.dart';
 import 'features/auth/presentation/login_screen.dart';
@@ -14,7 +15,7 @@ class FootballV2App extends ConsumerWidget {
     final authState = ref.watch(authControllerProvider);
 
     return MaterialApp(
-      title: 'FootballV2',
+      title: BrandConfig.name,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       home: switch (authState.status) {
