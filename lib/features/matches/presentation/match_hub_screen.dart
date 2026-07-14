@@ -42,7 +42,41 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
   _MatchStatusTab _status = _MatchStatusTab.all;
   DateTime? _selectedPlayedDate;
   bool _openingRegistration = false;
+  bool _controlsCollapsed = false;
+  final ScrollController _matchesScrollController = ScrollController();
   final Set<int> _acceptingMatchIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _matchesScrollController.addListener(_handleMatchesScroll);
+  }
+
+  @override
+  void dispose() {
+    _matchesScrollController
+      ..removeListener(_handleMatchesScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleMatchesScroll() {
+    if (!_matchesScrollController.hasClients) return;
+    final shouldCollapse = _matchesScrollController.offset > 12;
+    if (shouldCollapse == _controlsCollapsed || !mounted) return;
+    setState(() => _controlsCollapsed = shouldCollapse);
+  }
+
+  void _selectStatus(_MatchStatusTab status) {
+    if (_matchesScrollController.hasClients) {
+      _matchesScrollController.jumpTo(0);
+    }
+    setState(() {
+      _status = status;
+      _selectedPlayedDate = null;
+      _controlsCollapsed = false;
+    });
+  }
 
   Future<void> _refreshStatus(_MatchStatusTab status) async {
     if (status == _MatchStatusTab.all) {
@@ -277,36 +311,50 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-          child: _MatchHeader(
-            member: member,
-            hasPendingMatch: hasPendingMatch,
-            hasMatchedMatch: hasMatchedMatch,
-            activeMatchesResolved: activeMatchesResolved,
-            openingRegistration: _openingRegistration,
-            onRegister: _openRegistration,
-          ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: _controlsCollapsed
+              ? const SizedBox(width: double.infinity)
+              : Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+                  child: _MatchHeader(
+                    member: member,
+                    hasPendingMatch: hasPendingMatch,
+                    hasMatchedMatch: hasMatchedMatch,
+                    activeMatchesResolved: activeMatchesResolved,
+                    openingRegistration: _openingRegistration,
+                    onRegister: _openRegistration,
+                  ),
+                ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-          child: _MatchSchedulePanel(
-            status: _status,
-            dates: availableDates,
-            selectedDate: selectedPlayedDate,
-            onStatusSelected: (status) {
-              setState(() {
-                _status = status;
-                _selectedPlayedDate = null;
-              });
-            },
-            onDateSelected: (date) {
-              setState(() => _selectedPlayedDate = date);
-            },
+        AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              _controlsCollapsed ? 6 : 10,
+            ),
+            child: _MatchSchedulePanel(
+              compact: _controlsCollapsed,
+              status: _status,
+              dates: availableDates,
+              selectedDate: selectedPlayedDate,
+              onStatusSelected: _selectStatus,
+              onDateSelected: (date) {
+                setState(() => _selectedPlayedDate = date);
+              },
+            ),
           ),
         ),
         Expanded(
           child: _MatchesView(
+            scrollController: _matchesScrollController,
             status: _status,
             matches: selectedMatches,
             selectedDate: selectedPlayedDate,
@@ -424,6 +472,7 @@ class _MatchHeader extends StatelessWidget {
 
 class _MatchSchedulePanel extends StatelessWidget {
   const _MatchSchedulePanel({
+    required this.compact,
     required this.status,
     required this.dates,
     required this.selectedDate,
@@ -431,6 +480,7 @@ class _MatchSchedulePanel extends StatelessWidget {
     required this.onDateSelected,
   });
 
+  final bool compact;
   final _MatchStatusTab status;
   final List<DateTime> dates;
   final DateTime? selectedDate;
@@ -439,6 +489,26 @@ class _MatchSchedulePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (compact) {
+      return Container(
+        key: const ValueKey('match-schedule-panel'),
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: AppTheme.line),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.navy.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: _buildStatusSelector(compact: true),
+      );
+    }
+
     return Container(
       key: const ValueKey('match-schedule-panel'),
       padding: const EdgeInsets.fromLTRB(14, 13, 14, 12),
@@ -474,26 +544,7 @@ class _MatchSchedulePanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 11),
-          Container(
-            key: const ValueKey('match-status-selector'),
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: AppTheme.canvas,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Row(
-              children: [
-                for (final item in _MatchStatusTab.values)
-                  Expanded(
-                    child: _MatchStatusButton(
-                      label: item.label,
-                      selected: status == item,
-                      onTap: () => onStatusSelected(item),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          _buildStatusSelector(),
           if (dates.isNotEmpty) ...[
             const SizedBox(height: 11),
             SizedBox(
@@ -529,15 +580,41 @@ class _MatchSchedulePanel extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildStatusSelector({bool compact = false}) {
+    return Container(
+      key: const ValueKey('match-status-selector'),
+      padding: EdgeInsets.all(compact ? 0 : 4),
+      decoration: BoxDecoration(
+        color: compact ? Colors.white : AppTheme.canvas,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Row(
+        children: [
+          for (final item in _MatchStatusTab.values)
+            Expanded(
+              child: _MatchStatusButton(
+                compact: compact,
+                label: item.label,
+                selected: status == item,
+                onTap: () => onStatusSelected(item),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _MatchStatusButton extends StatelessWidget {
   const _MatchStatusButton({
+    required this.compact,
     required this.label,
     required this.selected,
     required this.onTap,
   });
 
+  final bool compact;
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -551,13 +628,13 @@ class _MatchStatusButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: SizedBox(
-          height: 38,
+          height: compact ? 32 : 38,
           child: Center(
             child: Text(
               label,
               style: TextStyle(
                 color: selected ? AppTheme.lime : AppTheme.navySoft,
-                fontSize: 12,
+                fontSize: compact ? 11 : 12,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -631,6 +708,7 @@ class _DateTile extends StatelessWidget {
 
 class _MatchesView extends StatelessWidget {
   const _MatchesView({
+    required this.scrollController,
     required this.status,
     required this.matches,
     required this.selectedDate,
@@ -644,6 +722,7 @@ class _MatchesView extends StatelessWidget {
     required this.onOpenDetail,
   });
 
+  final ScrollController scrollController;
   final _MatchStatusTab status;
   final AsyncValue<List<TeamMatchSummary>> matches;
   final DateTime? selectedDate;
@@ -678,6 +757,7 @@ class _MatchesView extends StatelessWidget {
           return visibleItems.isEmpty
             ? _EmptyMatchesView(status: status)
             : ListView.separated(
+                controller: scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
                 itemCount: visibleItems.length,
