@@ -271,7 +271,7 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
           child: _MatchHeader(
             member: member,
             hasPendingMatch: hasPendingMatch,
@@ -442,6 +442,8 @@ class _MatchHeader extends StatelessWidget {
     );
 
     return FootballHeroCard(
+      key: const ValueKey('match-hero-card'),
+      compact: true,
       eyebrow: 'TEAM MATCH',
       title: '새로운 상대를 만나보세요',
       subtitle: '대기 중인 매치를 수락하거나 우리 팀의 경기를 등록하세요.',
@@ -460,6 +462,8 @@ class _MatchHeader extends StatelessWidget {
             style: FilledButton.styleFrom(
               backgroundColor: AppTheme.lime,
               foregroundColor: AppTheme.navy,
+              minimumSize: const Size.fromHeight(42),
+              visualDensity: VisualDensity.compact,
               disabledBackgroundColor: Colors.white.withValues(alpha: 0.14),
               disabledForegroundColor: Colors.white.withValues(alpha: 0.65),
             ),

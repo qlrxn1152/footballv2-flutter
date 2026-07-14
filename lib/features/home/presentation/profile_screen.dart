@@ -22,11 +22,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _refresh() async {
     ref.invalidate(memberMeProvider);
-    ref.invalidate(myTeamJoinRequestsProvider);
-    await Future.wait<Object?>([
-      ref.read(memberMeProvider.future),
-      ref.read(myTeamJoinRequestsProvider.future),
-    ]);
+    final member = await ref.read(memberMeProvider.future);
+    if (!member.hasTeam) {
+      ref.invalidate(myTeamJoinRequestsProvider);
+      await ref.read(myTeamJoinRequestsProvider.future);
+    }
   }
 
   Future<void> _cancelRequest(MyTeamJoinRequest request) async {
@@ -135,7 +135,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final member = ref.watch(memberMeProvider);
-    final joinRequests = ref.watch(myTeamJoinRequestsProvider);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -145,82 +144,100 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           message: error.toString(),
           onRetry: () => ref.invalidate(memberMeProvider),
         ),
-        data: (item) => ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          children: [
-            _ProfileCard(member: item),
-            const SizedBox(height: 14),
-            _TeamCard(
-              member: item,
-              leaving: _leavingTeam,
-              onOpenTeam: item.teamId == null
-                  ? null
-                  : () => _openTeam(item.teamId!),
-              onLeave: item.hasTeam && !item.isTeamLeader
-                  ? () => _leaveTeam(item)
-                  : null,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Text(
-                  '내 가입 신청',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
+        data: (item) {
+          final joinRequests = item.hasTeam
+              ? null
+              : ref.watch(myTeamJoinRequestsProvider);
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            children: [
+              _ProfileCard(
+                member: item,
+                onOpenTeam: item.teamId == null
+                    ? null
+                    : () => _openTeam(item.teamId!),
+              ),
+              if (item.hasTeam && !item.isTeamLeader) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _leavingTeam ? null : () => _leaveTeam(item),
+                  icon: _leavingTeam
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.exit_to_app),
+                  label: const Text('팀 탈퇴'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                    minimumSize: const Size.fromHeight(48),
                   ),
                 ),
-                const Spacer(),
+              ],
+              if (joinRequests != null) ...[
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Text(
+                      '내 가입 신청',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const Spacer(),
+                    joinRequests.when(
+                      data: (items) => Text('${items.length}건'),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, _) => const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
                 joinRequests.when(
-                  data: (items) => Text('${items.length}건'),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, _) => const SizedBox.shrink(),
+                  loading: () => const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                  error: (error, _) => _InlineError(
+                    message: error.toString(),
+                    onRetry: () => ref.invalidate(myTeamJoinRequestsProvider),
+                  ),
+                  data: (items) => items.isEmpty
+                      ? const _EmptyRequestsCard()
+                      : Column(
+                          children: items
+                              .map(
+                                (request) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 9),
+                                  child: _JoinRequestCard(
+                                    request: request,
+                                    canceling: _cancelingRequestIds.contains(
+                                      request.teamJoinRequestId,
+                                    ),
+                                    onOpenTeam: () => _openTeam(request.teamId),
+                                    onCancel: () => _cancelRequest(request),
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                        ),
                 ),
               ],
-            ),
-            const SizedBox(height: 10),
-            joinRequests.when(
-              loading: () => const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator()),
+              const SizedBox(height: 18),
+              OutlinedButton.icon(
+                onPressed: () => _confirmLogout(context),
+                icon: const Icon(Icons.logout),
+                label: const Text('로그아웃'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
                 ),
               ),
-              error: (error, _) => _InlineError(
-                message: error.toString(),
-                onRetry: () => ref.invalidate(myTeamJoinRequestsProvider),
-              ),
-              data: (items) => items.isEmpty
-                  ? const _EmptyRequestsCard()
-                  : Column(
-                      children: items
-                          .map(
-                            (request) => Padding(
-                              padding: const EdgeInsets.only(bottom: 9),
-                              child: _JoinRequestCard(
-                                request: request,
-                                canceling: _cancelingRequestIds.contains(
-                                  request.teamJoinRequestId,
-                                ),
-                                onOpenTeam: () => _openTeam(request.teamId),
-                                onCancel: () => _cancelRequest(request),
-                              ),
-                            ),
-                          )
-                          .toList(growable: false),
-                    ),
-            ),
-            const SizedBox(height: 18),
-            OutlinedButton.icon(
-              onPressed: () => _confirmLogout(context),
-              icon: const Icon(Icons.logout),
-              label: const Text('로그아웃'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-              ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -255,9 +272,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.member});
+  const _ProfileCard({required this.member, required this.onOpenTeam});
 
   final MemberMe member;
+  final VoidCallback? onOpenTeam;
 
   @override
   Widget build(BuildContext context) {
@@ -388,124 +406,83 @@ class _ProfileCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: 10),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: const ValueKey('profile-team-link'),
+                    onTap: onOpenTeam,
+                    borderRadius: BorderRadius.circular(17),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 13,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(17),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.shield_outlined,
+                            color: AppTheme.lime,
+                            size: 25,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'MY TEAM',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  member.teamName ?? '소속 팀 없음',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                if (member.hasTeam)
+                                  Text(
+                                    member.isTeamLeader ? '팀장' : '팀원',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.68,
+                                      ),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          if (member.hasTeam)
+                            const Icon(
+                              Icons.chevron_right,
+                              color: Colors.white70,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _TeamCard extends StatelessWidget {
-  const _TeamCard({
-    required this.member,
-    required this.leaving,
-    required this.onOpenTeam,
-    required this.onLeave,
-  });
-
-  final MemberMe member;
-  final bool leaving;
-  final VoidCallback? onOpenTeam;
-  final VoidCallback? onLeave;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    if (!member.hasTeam) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Icon(Icons.shield_outlined, size: 34, color: colors.primary),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '소속 팀 없음',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    SizedBox(height: 3),
-                    Text('팀 탭에서 팀을 만들거나 가입을 신청할 수 있습니다.'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: colors.primaryContainer,
-                  child: const Icon(Icons.shield_outlined),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        member.teamName!,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Text(
-                        '${member.isTeamLeader ? '팀장' : '팀원'} · '
-                        '가입 ${_formatDate(member.joinedAt)}',
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: onOpenTeam,
-                  tooltip: '팀 상세 보기',
-                  icon: const Icon(Icons.chevron_right),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (member.isTeamLeader)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colors.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  '팀장은 팀을 탈퇴할 수 없습니다.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-              )
-            else
-              OutlinedButton.icon(
-                onPressed: leaving ? null : onLeave,
-                icon: leaving
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.exit_to_app),
-                label: const Text('팀 탈퇴'),
-                style: OutlinedButton.styleFrom(foregroundColor: colors.error),
-              ),
-          ],
-        ),
       ),
     );
   }
