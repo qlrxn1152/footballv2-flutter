@@ -518,7 +518,7 @@ class _MatchDateSelector extends StatelessWidget {
           ),
           const SizedBox(height: 11),
           SizedBox(
-            height: 62,
+            height: 72,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: dates.length + 1,
@@ -575,7 +575,7 @@ class _DateTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         child: Container(
           width: 66,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
             border: Border.all(
