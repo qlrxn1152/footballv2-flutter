@@ -69,7 +69,19 @@ class SecureSessionStore implements SessionStore {
   }
 
   @override
-  Future<void> clear() => _storage.deleteAll();
+  Future<void> clear() async {
+    // 로그아웃해도 방문자 식별자처럼 인증과 무관한 저장값은 유지합니다.
+    for (final key in const [
+      _tokenKey,
+      _tokenTypeKey,
+      _expiresAtKey,
+      _memberIdKey,
+      _usernameKey,
+      _ratingKey,
+    ]) {
+      await _storage.delete(key: key);
+    }
+  }
 }
 
 final sessionStoreProvider = Provider<SessionStore>(

@@ -24,6 +24,30 @@ void main() {
     expect(restored?.memberId, session.memberId);
     expect(restored?.username, session.username);
   });
+
+  test('로그아웃할 때 방문자 식별자는 삭제하지 않는다', () async {
+    final storage = _TrackingSecureStorage();
+    final store = SecureSessionStore(storage);
+    await storage.write(key: 'analytics_visitor_id', value: 'visitor-1');
+    await store.save(
+      AuthSession(
+        accessToken: 'access-token',
+        tokenType: 'Bearer',
+        expiresAt: DateTime.now().add(const Duration(hours: 1)),
+        memberId: 7,
+        username: 'player7',
+        memberRating: 1500,
+      ),
+    );
+
+    await store.clear();
+
+    expect(await store.read(), isNull);
+    expect(
+      await storage.read(key: 'analytics_visitor_id'),
+      'visitor-1',
+    );
+  });
 }
 
 class _TrackingSecureStorage extends FlutterSecureStorage {
@@ -70,4 +94,17 @@ class _TrackingSecureStorage extends FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
   }) async => _values[key];
+
+  @override
+  Future<void> delete({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    _values.remove(key);
+  }
 }
