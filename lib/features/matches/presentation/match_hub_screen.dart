@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/football_hero_card.dart';
 import '../../members/data/member_account.dart';
 import '../../members/data/member_repository.dart';
 import '../../teams/data/team_repository.dart';
@@ -270,33 +272,63 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: SegmentedButton<_MatchStatusTab>(
-            segments: const [
-              ButtonSegment(
-                value: _MatchStatusTab.all,
-                icon: Icon(Icons.format_list_bulleted),
-                label: Text('전체'),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppTheme.line),
+            ),
+            child: SegmentedButton<_MatchStatusTab>(
+              showSelectedIcon: false,
+              style: ButtonStyle(
+                side: const WidgetStatePropertyAll(BorderSide.none),
+                shape: WidgetStatePropertyAll(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                backgroundColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? AppTheme.navy
+                      : Colors.transparent,
+                ),
+                foregroundColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? AppTheme.lime
+                      : AppTheme.navySoft,
+                ),
+                textStyle: const WidgetStatePropertyAll(
+                  TextStyle(fontWeight: FontWeight.w900),
+                ),
               ),
-              ButtonSegment(
-                value: _MatchStatusTab.pending,
-                icon: Icon(Icons.hourglass_top_outlined),
-                label: Text('대기'),
-              ),
-              ButtonSegment(
-                value: _MatchStatusTab.matched,
-                icon: Icon(Icons.handshake_outlined),
-                label: Text('매칭'),
-              ),
-              ButtonSegment(
-                value: _MatchStatusTab.completed,
-                icon: Icon(Icons.emoji_events_outlined),
-                label: Text('완료'),
-              ),
-            ],
-            selected: {_status},
-            onSelectionChanged: (selected) {
-              setState(() => _status = selected.first);
-            },
+              segments: const [
+                ButtonSegment(
+                  value: _MatchStatusTab.all,
+                  icon: Icon(Icons.format_list_bulleted),
+                  label: Text('전체'),
+                ),
+                ButtonSegment(
+                  value: _MatchStatusTab.pending,
+                  icon: Icon(Icons.hourglass_top_outlined),
+                  label: Text('대기'),
+                ),
+                ButtonSegment(
+                  value: _MatchStatusTab.matched,
+                  icon: Icon(Icons.handshake_outlined),
+                  label: Text('매칭'),
+                ),
+                ButtonSegment(
+                  value: _MatchStatusTab.completed,
+                  icon: Icon(Icons.emoji_events_outlined),
+                  label: Text('완료'),
+                ),
+              ],
+              selected: {_status},
+              onSelectionChanged: (selected) {
+                setState(() => _status = selected.first);
+              },
+            ),
           ),
         ),
         Expanded(
@@ -370,46 +402,14 @@ class _MatchHeader extends StatelessWidget {
       error: (_, _) => ('내 팀 확인 실패', false),
     );
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF087F5B), Color(0xFF0CA678)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.sports_soccer, color: Colors.white, size: 30),
-              SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TEAM MATCH',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      '매치를 확인하고 새로운 상대를 만나보세요.',
-                      style: TextStyle(color: Color(0xFFD3F9D8)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          FilledButton.tonalIcon(
+    return FootballHeroCard(
+      eyebrow: 'TEAM MATCH',
+      title: '새로운 상대를 만나보세요',
+      subtitle: '대기 중인 매치를 수락하거나 우리 팀의 경기를 등록하세요.',
+      icon: Icons.sports_soccer,
+      content: SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
             onPressed: canRegister && !openingRegistration ? onRegister : null,
             icon: openingRegistration
                 ? const SizedBox.square(
@@ -418,8 +418,13 @@ class _MatchHeader extends StatelessWidget {
                   )
                 : const Icon(Icons.add_circle_outline),
             label: Text(buttonLabel),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.lime,
+              foregroundColor: AppTheme.navy,
+              disabledBackgroundColor: Colors.white.withValues(alpha: 0.14),
+              disabledForegroundColor: Colors.white.withValues(alpha: 0.65),
+            ),
           ),
-        ],
       ),
     );
   }
@@ -642,34 +647,52 @@ class _PairedMatchCard extends StatelessWidget {
         padding: const EdgeInsets.all(17),
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _TeamSide(
-                    name: match.homeTeamName,
-                    rating: match.homeTeamRating.toString(),
-                    label: 'HOME',
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    versusLabel,
-                    style: TextStyle(
-                      fontSize: match.hasResult ? 21 : 17,
-                      fontWeight: FontWeight.w900,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              decoration: BoxDecoration(
+                color: AppTheme.navy,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _TeamSide(
+                      name: match.homeTeamName,
+                      rating: match.homeTeamRating.toString(),
+                      label: 'HOME',
                     ),
                   ),
-                ),
-                Expanded(
-                  child: _TeamSide(
-                    name: awayTeamName,
-                    rating: awayTeamRating,
-                    label: 'AWAY',
-                    alignEnd: true,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.lime,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        versusLabel,
+                        style: TextStyle(
+                          color: AppTheme.navy,
+                          fontSize: match.hasResult ? 21 : 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: _TeamSide(
+                      name: awayTeamName,
+                      rating: awayTeamRating,
+                      label: 'AWAY',
+                      alignEnd: true,
+                    ),
+                  ),
+                ],
+              ),
             ),
             if (match.isCompleted && match.hasResult) ...[
               const SizedBox(height: 14),
@@ -778,16 +801,32 @@ class _TeamSide extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.62),
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
         ),
         const SizedBox(height: 3),
         Text(
           name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-        Text('RATING $rating'),
+        Text(
+          'RATING $rating',
+          style: const TextStyle(
+            color: AppTheme.lime,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ],
     );
   }

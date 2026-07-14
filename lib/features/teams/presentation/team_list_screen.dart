@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/football_hero_card.dart';
 import '../data/team_models.dart';
 import '../data/team_repository.dart';
 import 'create_team_screen.dart';
@@ -92,34 +94,23 @@ class _TeamListHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TEAM RANKING',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text('팀 레이팅 순 · 총 $teamCount개 팀'),
-              ],
-            ),
-          ),
-          FilledButton.tonalIcon(
+    return FootballHeroCard(
+      eyebrow: 'TEAM RANKING',
+      title: '우리 팀의 현재 순위',
+      subtitle: '팀 레이팅 순 · 총 $teamCount개 팀',
+      icon: Icons.shield_outlined,
+      content: SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
             onPressed: onCreate,
             icon: const Icon(Icons.add),
             label: const Text('팀 만들기'),
             style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 44),
+              backgroundColor: AppTheme.lime,
+              foregroundColor: AppTheme.navy,
+              minimumSize: const Size(0, 48),
             ),
           ),
-        ],
       ),
     );
   }
@@ -139,6 +130,12 @@ class _TeamCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final rankColor = switch (rank) {
+      1 => const Color(0xFFFFB000),
+      2 => const Color(0xFF78909C),
+      3 => const Color(0xFFB56E3B),
+      _ => AppTheme.fieldGreen,
+    };
     return Card(
       child: InkWell(
         onTap: onTap,
@@ -148,21 +145,23 @@ class _TeamCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 54,
+                width: 48,
+                height: 56,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(14),
+                  color: rankColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(
-                  '$rank',
-                  style: TextStyle(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
+                child: rank <= 3
+                    ? Icon(Icons.shield, color: rankColor, size: 27)
+                    : Text(
+                        '$rank',
+                        style: TextStyle(
+                          color: rankColor,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                        ),
+                      ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -202,7 +201,7 @@ class _TeamCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right),
+              const Icon(Icons.chevron_right, color: AppTheme.navySoft),
             ],
           ),
         ),

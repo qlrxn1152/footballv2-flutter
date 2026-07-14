@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/football_hero_card.dart';
 import '../../teams/presentation/team_detail_screen.dart';
 import '../data/member_detail.dart';
 import '../data/member_repository.dart';
@@ -103,64 +105,82 @@ class _MemberHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return FootballHeroCard(
+      eyebrow: 'PLAYER PROFILE',
+      title: member.username,
+      subtitle: member.teamName ?? '소속 팀이 없는 자유 선수입니다.',
+      icon: Icons.person,
+      content: Row(
+        children: [
+          Expanded(
+            child: _ProfileMetric(
+              icon: Icons.trending_up,
+              label: 'RATING',
+              value: '${member.memberRating}',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _ProfileMetric(
+              icon: Icons.sports_soccer,
+              label: 'TOTAL GOALS',
+              value: '${member.totalGoalCount}',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileMetric extends StatelessWidget {
+  const _ProfileMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF087F5B), Color(0xFF12B886)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Row(
         children: [
-          Container(
-            width: 74,
-            height: 74,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.16),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.person, color: Colors.white, size: 44),
-          ),
-          const SizedBox(width: 18),
+          Icon(icon, color: AppTheme.lime, size: 22),
+          const SizedBox(width: 9),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  member.username,
+                  value,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 25,
+                    fontSize: 19,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 5),
                 Text(
-                  member.teamName ?? 'FREE AGENT',
-                  style: const TextStyle(color: Color(0xFFD3F9D8)),
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.62),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${member.memberRating}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const Text(
-                'RATING',
-                style: TextStyle(color: Colors.white70, fontSize: 10),
-              ),
-            ],
           ),
         ],
       ),

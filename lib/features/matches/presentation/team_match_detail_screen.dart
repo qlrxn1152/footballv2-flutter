@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/theme/app_theme.dart';
 import '../data/team_match.dart';
 import '../data/team_match_repository.dart';
 
@@ -115,17 +116,37 @@ class _MatchHero extends StatelessWidget {
     };
 
     return Container(
+      clipBehavior: Clip.antiAlias,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          colors: [AppTheme.navy, color],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.navy.withValues(alpha: 0.16),
+            blurRadius: 20,
+            offset: const Offset(0, 9),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.white),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppTheme.lime,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(icon, color: AppTheme.navy, size: 22),
+              ),
               const SizedBox(width: 9),
               Text(
                 label,
@@ -141,7 +162,7 @@ class _MatchHero extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 22),
           const Text(
             '경기 예정 일시',
             style: TextStyle(color: Colors.white70),
@@ -151,7 +172,7 @@ class _MatchHero extends StatelessWidget {
             _formatFullDateTime(match.playedAt),
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: 23,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -175,8 +196,12 @@ class _MatchupCard extends StatelessWidget {
         : 'VS';
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+        decoration: BoxDecoration(
+          color: AppTheme.navy,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Row(
           children: [
             Expanded(
@@ -188,11 +213,22 @@ class _MatchupCard extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                center,
-                style: TextStyle(
-                  fontSize: match.hasResult ? 23 : 17,
-                  fontWeight: FontWeight.w900,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.lime,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  center,
+                  style: TextStyle(
+                    color: AppTheme.navy,
+                    fontSize: match.hasResult ? 23 : 17,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ),
@@ -232,7 +268,12 @@ class _TeamSide extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.6),
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -240,9 +281,20 @@ class _TeamSide extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           textAlign: alignEnd ? TextAlign.end : TextAlign.start,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-        Text('RATING $rating'),
+        Text(
+          'RATING $rating',
+          style: const TextStyle(
+            color: AppTheme.lime,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ],
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/football_hero_card.dart';
 import '../../../core/widgets/status_banner.dart';
 import 'auth_controller.dart';
 
@@ -59,15 +60,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      '선수 등록하기',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    const FootballHeroCard(
+                      eyebrow: 'NEW PLAYER',
+                      title: '선수 등록하기',
+                      subtitle: '가입과 동시에 기본 레이팅 1500점으로 시작합니다.',
+                      icon: Icons.person_add_alt_1,
                     ),
-                    const SizedBox(height: 8),
-                    const Text('가입하면 기본 레이팅 1500점으로 시작합니다.'),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 22),
                     if (authState.errorMessage != null) ...[
                       StatusBanner(message: authState.errorMessage!),
                       const SizedBox(height: 16),

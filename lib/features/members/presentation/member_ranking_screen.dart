@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/football_hero_card.dart';
 import '../data/member_ranking.dart';
 import '../data/member_repository.dart';
 import 'member_detail_screen.dart';
@@ -32,7 +34,14 @@ class MemberRankingScreen extends ConsumerWidget {
                   height: index == 0 ? 18 : 10,
                 ),
                 itemBuilder: (context, index) {
-                  if (index == 0) return const _RankingHeader();
+                  if (index == 0) {
+                    return const FootballHeroCard(
+                      eyebrow: 'PLAYER RANKING',
+                      title: '오늘의 선수 랭킹',
+                      subtitle: '레이팅이 높은 선수부터 한눈에 확인하세요.',
+                      icon: Icons.emoji_events_outlined,
+                    );
+                  }
                   final member = items[index - 1];
                   return _RankingCard(
                     member: member,
@@ -45,45 +54,6 @@ class MemberRankingScreen extends ConsumerWidget {
                   );
                 },
               ),
-      ),
-    );
-  }
-}
-
-class _RankingHeader extends StatelessWidget {
-  const _RankingHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF087F5B), Color(0xFF12B886)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.emoji_events_outlined, color: Colors.white, size: 32),
-          SizedBox(height: 14),
-          Text(
-            'PLAYER RANKING',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 20,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            '레이팅이 높은 순서로 선수 순위를 확인하세요.',
-            style: TextStyle(color: Color(0xFFD3F9D8)),
-          ),
-        ],
       ),
     );
   }
@@ -105,30 +75,47 @@ class _RankingCard extends StatelessWidget {
       _ => colorScheme.primary,
     };
 
-    return Card(
-      child: InkWell(
+    final isPodium = member.rank <= 3;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: isPodium
+            ? [
+                BoxShadow(
+                  color: rankColor.withValues(alpha: 0.12),
+                  blurRadius: 18,
+                  offset: const Offset(0, 7),
+                ),
+              ]
+            : null,
+      ),
+      child: Card(
+        child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           child: Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 46,
+                height: 50,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: rankColor.withValues(alpha: 0.13),
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                child: Text(
-                  '${member.rank}',
-                  style: TextStyle(
-                    color: rankColor,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+                child: isPodium
+                    ? Icon(Icons.emoji_events, color: rankColor, size: 25)
+                    : Text(
+                        '${member.rank}',
+                        style: const TextStyle(
+                          color: AppTheme.fieldGreen,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -175,10 +162,15 @@ class _RankingCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, size: 20),
+              const Icon(
+                Icons.chevron_right,
+                color: AppTheme.navySoft,
+                size: 20,
+              ),
             ],
           ),
         ),
+      ),
       ),
     );
   }
