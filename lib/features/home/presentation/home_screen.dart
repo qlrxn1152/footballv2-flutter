@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/brand_config.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../analytics/presentation/daily_analytics_screen.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../matches/data/team_match_repository.dart';
@@ -121,9 +122,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _titles[index],
-          style: const TextStyle(fontWeight: FontWeight.w800),
+        toolbarHeight: 72,
+        backgroundColor: AppTheme.navy,
+        foregroundColor: Colors.white,
+        titleSpacing: 18,
+        title: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppTheme.lime,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.sports_soccer,
+                color: AppTheme.navy,
+                size: 25,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  BrandConfig.name,
+                  style: TextStyle(
+                    color: AppTheme.lime,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                Text(
+                  _titles[index],
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         actions: [
           IconButton(
@@ -138,6 +181,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 key: const ValueKey('app-menu-button'),
                 onPressed: () => Scaffold.of(context).openEndDrawer(),
                 tooltip: '전체 메뉴',
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                  foregroundColor: AppTheme.lime,
+                ),
                 icon: const Icon(Icons.sports_soccer),
               ),
             ),

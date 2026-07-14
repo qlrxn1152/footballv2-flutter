@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:footballv2_flutter/core/config/brand_config.dart';
 import 'package:footballv2_flutter/core/session/auth_session.dart';
+import 'package:footballv2_flutter/core/theme/app_theme.dart';
 import 'package:footballv2_flutter/features/auth/data/auth_repository.dart';
 import 'package:footballv2_flutter/features/auth/presentation/login_screen.dart';
 
@@ -13,12 +14,14 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
         ],
-        child: const MaterialApp(home: LoginScreen()),
+        child: MaterialApp(theme: AppTheme.light, home: const LoginScreen()),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text(BrandConfig.slogan), findsOneWidget);
+    expect(find.text(BrandConfig.name), findsOneWidget);
+    expect(find.byKey(const ValueKey('login-form-card')), findsOneWidget);
     expect(find.text('다시 경기장으로'), findsNothing);
     expect(
       find.text('FootballV2에서 팀과 선수 랭킹을 확인하세요.'),

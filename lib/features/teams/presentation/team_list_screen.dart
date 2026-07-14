@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/football_hero_card.dart';
 import '../data/team_models.dart';
 import '../data/team_repository.dart';
 import 'create_team_screen.dart';
@@ -37,27 +39,19 @@ class TeamListScreen extends ConsumerWidget {
                   const _EmptyTeamCard(),
                 ],
               )
-            : ListView.separated(
+            : ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-                itemCount: items.length + 1,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return _TeamListHeader(
-                      teamCount: items.length,
-                      onCreate: () => _createTeam(context, ref),
-                    );
-                  }
-                  return _TeamCard(
-                    rank: index,
-                    team: items[index - 1],
-                    onTap: () => _openTeam(
-                      context,
-                      ref,
-                      items[index - 1].teamId,
-                    ),
-                  );
-                },
+                children: [
+                  _TeamListHeader(
+                    teamCount: items.length,
+                    onCreate: () => _createTeam(context, ref),
+                  ),
+                  const SizedBox(height: 18),
+                  _TeamRankingTable(
+                    teams: items,
+                    onOpenTeam: (teamId) => _openTeam(context, ref, teamId),
+                  ),
+                ],
               ),
       ),
     );
@@ -92,41 +86,83 @@ class _TeamListHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TEAM RANKING',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text('팀 레이팅 순 · 총 $teamCount개 팀'),
-              ],
-            ),
-          ),
-          FilledButton.tonalIcon(
+    return FootballHeroCard(
+      eyebrow: 'TEAM RANKING',
+      title: '우리 팀의 현재 순위',
+      subtitle: '팀 레이팅 순 · 총 $teamCount개 팀',
+      icon: Icons.shield_outlined,
+      content: SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
             onPressed: onCreate,
             icon: const Icon(Icons.add),
             label: const Text('팀 만들기'),
             style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 44),
+              backgroundColor: AppTheme.lime,
+              foregroundColor: AppTheme.navy,
+              minimumSize: const Size(0, 48),
             ),
           ),
+      ),
+    );
+  }
+}
+
+class _TeamRankingTable extends StatelessWidget {
+  const _TeamRankingTable({required this.teams, required this.onOpenTeam});
+
+  final List<TeamSummary> teams;
+  final ValueChanged<int> onOpenTeam;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            color: const Color(0xFFE9EFEC),
+            child: const Row(
+              children: [
+                SizedBox(width: 42, child: Text('순위', style: _tableHeaderStyle)),
+                Expanded(child: Text('팀', style: _tableHeaderStyle)),
+                SizedBox(
+                  width: 64,
+                  child: Text(
+                    '레이팅',
+                    textAlign: TextAlign.center,
+                    style: _tableHeaderStyle,
+                  ),
+                ),
+                SizedBox(
+                  width: 42,
+                  child: Text(
+                    '인원',
+                    textAlign: TextAlign.center,
+                    style: _tableHeaderStyle,
+                  ),
+                ),
+                SizedBox(width: 18),
+              ],
+            ),
+          ),
+          for (var index = 0; index < teams.length; index++) ...[
+            if (index > 0) const Divider(height: 1),
+            _TeamRankingRow(
+              rank: index + 1,
+              team: teams[index],
+              onTap: () => onOpenTeam(teams[index].teamId),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _TeamCard extends StatelessWidget {
-  const _TeamCard({
+class _TeamRankingRow extends StatelessWidget {
+  const _TeamRankingRow({
     required this.rank,
     required this.team,
     required this.onTap,
@@ -138,78 +174,105 @@ class _TeamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 54,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  '$rank',
-                  style: TextStyle(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      team.teamName,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Wrap(
-                      spacing: 12,
-                      children: [
-                        Text('리더 ${team.leaderUsername}'),
-                        Text('팀원 ${team.memberCount}명'),
-                      ],
-                    ),
-                  ],
+    final rankColor = switch (rank) {
+      1 => const Color(0xFFFFB000),
+      2 => const Color(0xFF78909C),
+      3 => const Color(0xFFB56E3B),
+      _ => AppTheme.line,
+    };
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 72),
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+        decoration: BoxDecoration(
+          color: rank <= 3
+              ? rankColor.withValues(alpha: 0.045)
+              : Colors.white,
+          border: Border(left: BorderSide(color: rankColor, width: 4)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 38,
+              child: Text(
+                '$rank',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: rank <= 3 ? rankColor : AppTheme.navySoft,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+            ),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: rankColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.shield, color: rankColor, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${team.teamRating}',
-                    style: TextStyle(
-                      color: colorScheme.primary,
-                      fontSize: 18,
+                    team.teamName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const Text('RATING', style: TextStyle(fontSize: 10)),
+                  const SizedBox(height: 2),
+                  Text(
+                    '리더 ${team.leaderUsername}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11),
+                  ),
                 ],
               ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
+            ),
+            SizedBox(
+              width: 64,
+              child: Text(
+                '${team.teamRating}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppTheme.fieldGreen,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 42,
+              child: Text(
+                '${team.memberCount}명',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 18, color: AppTheme.navySoft),
+          ],
         ),
       ),
     );
   }
 }
+
+const _tableHeaderStyle = TextStyle(
+  color: Color(0xFF65736D),
+  fontSize: 11,
+  fontWeight: FontWeight.w900,
+);
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();

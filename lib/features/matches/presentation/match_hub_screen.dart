@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/football_hero_card.dart';
 import '../../members/data/member_account.dart';
 import '../../members/data/member_repository.dart';
 import '../../teams/data/team_repository.dart';
@@ -31,6 +33,7 @@ class MatchHubScreen extends ConsumerStatefulWidget {
 
 class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
   _MatchStatusTab _status = _MatchStatusTab.all;
+  DateTime? _selectedPlayedDate;
   bool _openingRegistration = false;
   final Set<int> _acceptingMatchIds = {};
 
@@ -253,6 +256,17 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
       _MatchStatusTab.matched => matchedMatches,
       _MatchStatusTab.completed => completedMatches,
     };
+    final availableDates = selectedMatches.when(
+      data: _matchDates,
+      loading: () => const <DateTime>[],
+      error: (_, _) => const <DateTime>[],
+    );
+    final selectedPlayedDate = _selectedPlayedDate != null &&
+            availableDates.any(
+              (date) => _isSameDate(date, _selectedPlayedDate!),
+            )
+        ? _selectedPlayedDate
+        : null;
 
     return Column(
       children: [
@@ -270,39 +284,84 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: SegmentedButton<_MatchStatusTab>(
-            segments: const [
-              ButtonSegment(
-                value: _MatchStatusTab.all,
-                icon: Icon(Icons.format_list_bulleted),
-                label: Text('전체'),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppTheme.line),
+            ),
+            child: SegmentedButton<_MatchStatusTab>(
+              showSelectedIcon: false,
+              style: ButtonStyle(
+                side: const WidgetStatePropertyAll(BorderSide.none),
+                shape: WidgetStatePropertyAll(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                backgroundColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? AppTheme.navy
+                      : Colors.transparent,
+                ),
+                foregroundColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? AppTheme.lime
+                      : AppTheme.navySoft,
+                ),
+                textStyle: const WidgetStatePropertyAll(
+                  TextStyle(fontWeight: FontWeight.w900),
+                ),
               ),
-              ButtonSegment(
-                value: _MatchStatusTab.pending,
-                icon: Icon(Icons.hourglass_top_outlined),
-                label: Text('대기'),
-              ),
-              ButtonSegment(
-                value: _MatchStatusTab.matched,
-                icon: Icon(Icons.handshake_outlined),
-                label: Text('매칭'),
-              ),
-              ButtonSegment(
-                value: _MatchStatusTab.completed,
-                icon: Icon(Icons.emoji_events_outlined),
-                label: Text('완료'),
-              ),
-            ],
-            selected: {_status},
-            onSelectionChanged: (selected) {
-              setState(() => _status = selected.first);
-            },
+              segments: const [
+                ButtonSegment(
+                  value: _MatchStatusTab.all,
+                  icon: Icon(Icons.format_list_bulleted),
+                  label: Text('전체'),
+                ),
+                ButtonSegment(
+                  value: _MatchStatusTab.pending,
+                  icon: Icon(Icons.hourglass_top_outlined),
+                  label: Text('대기'),
+                ),
+                ButtonSegment(
+                  value: _MatchStatusTab.matched,
+                  icon: Icon(Icons.handshake_outlined),
+                  label: Text('매칭'),
+                ),
+                ButtonSegment(
+                  value: _MatchStatusTab.completed,
+                  icon: Icon(Icons.emoji_events_outlined),
+                  label: Text('완료'),
+                ),
+              ],
+              selected: {_status},
+              onSelectionChanged: (selected) {
+                setState(() {
+                  _status = selected.first;
+                  _selectedPlayedDate = null;
+                });
+              },
+            ),
           ),
         ),
+        if (availableDates.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: _MatchDateSelector(
+              dates: availableDates,
+              selectedDate: selectedPlayedDate,
+              onSelected: (date) {
+                setState(() => _selectedPlayedDate = date);
+              },
+            ),
+          ),
         Expanded(
           child: _MatchesView(
             status: _status,
             matches: selectedMatches,
+            selectedDate: selectedPlayedDate,
             member: memberValue,
             memberTeamHasActiveMatch: hasActiveMatch,
             memberTeamActivityResolved: activeMatchesResolved,
@@ -335,6 +394,18 @@ class _MatchHubScreenState extends ConsumerState<MatchHubScreen> {
       loading: () => false,
       error: (_, _) => false,
     );
+  }
+
+  List<DateTime> _matchDates(List<TeamMatchSummary> matches) {
+    final dates = <int, DateTime>{};
+    for (final match in matches) {
+      final playedAt = match.playedAt;
+      if (playedAt == null) continue;
+      final date = DateTime(playedAt.year, playedAt.month, playedAt.day);
+      dates[_dateKey(date)] = date;
+    }
+    final result = dates.values.toList()..sort();
+    return result;
   }
 }
 
@@ -370,46 +441,14 @@ class _MatchHeader extends StatelessWidget {
       error: (_, _) => ('내 팀 확인 실패', false),
     );
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF087F5B), Color(0xFF0CA678)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.sports_soccer, color: Colors.white, size: 30),
-              SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TEAM MATCH',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      '매치를 확인하고 새로운 상대를 만나보세요.',
-                      style: TextStyle(color: Color(0xFFD3F9D8)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          FilledButton.tonalIcon(
+    return FootballHeroCard(
+      eyebrow: 'TEAM MATCH',
+      title: '새로운 상대를 만나보세요',
+      subtitle: '대기 중인 매치를 수락하거나 우리 팀의 경기를 등록하세요.',
+      icon: Icons.sports_soccer,
+      content: SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
             onPressed: canRegister && !openingRegistration ? onRegister : null,
             icon: openingRegistration
                 ? const SizedBox.square(
@@ -418,8 +457,156 @@ class _MatchHeader extends StatelessWidget {
                   )
                 : const Icon(Icons.add_circle_outline),
             label: Text(buttonLabel),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.lime,
+              foregroundColor: AppTheme.navy,
+              disabledBackgroundColor: Colors.white.withValues(alpha: 0.14),
+              disabledForegroundColor: Colors.white.withValues(alpha: 0.65),
+            ),
+          ),
+      ),
+    );
+  }
+
+}
+
+class _MatchDateSelector extends StatelessWidget {
+  const _MatchDateSelector({
+    required this.dates,
+    required this.selectedDate,
+    required this.onSelected,
+  });
+
+  final List<DateTime> dates;
+  final DateTime? selectedDate;
+  final ValueChanged<DateTime?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.calendar_month_outlined,
+                color: AppTheme.fieldGreen,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '경기 일정',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              const Spacer(),
+              Text(
+                '${dates.length}개 날짜',
+                style: const TextStyle(
+                  color: Color(0xFF65736D),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 11),
+          SizedBox(
+            height: 72,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: dates.length + 1,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return _DateTile(
+                    key: const ValueKey('match-date-all'),
+                    topLabel: '전체',
+                    bottomLabel: '일정',
+                    selected: selectedDate == null,
+                    onTap: () => onSelected(null),
+                  );
+                }
+                final date = dates[index - 1];
+                return _DateTile(
+                  key: ValueKey('match-date-${_dateKey(date)}'),
+                  topLabel: _shortDate(date),
+                  bottomLabel: _weekday(date),
+                  selected: selectedDate != null &&
+                      _isSameDate(date, selectedDate!),
+                  onTap: () => onSelected(date),
+                );
+              },
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DateTile extends StatelessWidget {
+  const _DateTile({
+    required this.topLabel,
+    required this.bottomLabel,
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
+
+  final String topLabel;
+  final String bottomLabel;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppTheme.navy : AppTheme.canvas,
+      borderRadius: BorderRadius.circular(15),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          width: 66,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: selected ? AppTheme.navy : AppTheme.line,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                topLabel,
+                style: TextStyle(
+                  color: selected ? AppTheme.lime : AppTheme.navy,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                bottomLabel,
+                style: TextStyle(
+                  color: selected
+                      ? Colors.white.withValues(alpha: 0.7)
+                      : const Color(0xFF65736D),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -429,6 +616,7 @@ class _MatchesView extends StatelessWidget {
   const _MatchesView({
     required this.status,
     required this.matches,
+    required this.selectedDate,
     required this.member,
     required this.memberTeamHasActiveMatch,
     required this.memberTeamActivityResolved,
@@ -441,6 +629,7 @@ class _MatchesView extends StatelessWidget {
 
   final _MatchStatusTab status;
   final AsyncValue<List<TeamMatchSummary>> matches;
+  final DateTime? selectedDate;
   final MemberMe? member;
   final bool memberTeamHasActiveMatch;
   final bool memberTeamActivityResolved;
@@ -460,15 +649,24 @@ class _MatchesView extends StatelessWidget {
           message: error is ApiException ? error.message : error.toString(),
           onRetry: onRefresh,
         ),
-        data: (items) => items.isEmpty
+        data: (items) {
+          final visibleItems = selectedDate == null
+              ? items
+              : items
+                  .where(
+                    (match) => match.playedAt != null &&
+                        _isSameDate(match.playedAt!, selectedDate!),
+                  )
+                  .toList(growable: false);
+          return visibleItems.isEmpty
             ? _EmptyMatchesView(status: status)
             : ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-                itemCount: items.length,
+                itemCount: visibleItems.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
-                  final match = items[index];
+                  final match = visibleItems[index];
                   if (match.isPending) {
                     return _PendingMatchCard(
                       match: match,
@@ -492,7 +690,8 @@ class _MatchesView extends StatelessWidget {
                     onOpenDetail: () => onOpenDetail(match.teamMatchId),
                   );
                 },
-              ),
+              );
+        },
       ),
     );
   }
@@ -642,34 +841,52 @@ class _PairedMatchCard extends StatelessWidget {
         padding: const EdgeInsets.all(17),
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _TeamSide(
-                    name: match.homeTeamName,
-                    rating: match.homeTeamRating.toString(),
-                    label: 'HOME',
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    versusLabel,
-                    style: TextStyle(
-                      fontSize: match.hasResult ? 21 : 17,
-                      fontWeight: FontWeight.w900,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              decoration: BoxDecoration(
+                color: AppTheme.navy,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _TeamSide(
+                      name: match.homeTeamName,
+                      rating: match.homeTeamRating.toString(),
+                      label: 'HOME',
                     ),
                   ),
-                ),
-                Expanded(
-                  child: _TeamSide(
-                    name: awayTeamName,
-                    rating: awayTeamRating,
-                    label: 'AWAY',
-                    alignEnd: true,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.lime,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        versusLabel,
+                        style: TextStyle(
+                          color: AppTheme.navy,
+                          fontSize: match.hasResult ? 21 : 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: _TeamSide(
+                      name: awayTeamName,
+                      rating: awayTeamRating,
+                      label: 'AWAY',
+                      alignEnd: true,
+                    ),
+                  ),
+                ],
+              ),
             ),
             if (match.isCompleted && match.hasResult) ...[
               const SizedBox(height: 14),
@@ -778,16 +995,32 @@ class _TeamSide extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.62),
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
         ),
         const SizedBox(height: 3),
         Text(
           name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-        Text('RATING $rating'),
+        Text(
+          'RATING $rating',
+          style: const TextStyle(
+            color: AppTheme.lime,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ],
     );
   }
@@ -900,3 +1133,17 @@ String _formatDateTime(DateTime? value) {
   final minute = value.minute.toString().padLeft(2, '0');
   return '$month.$day $hour:$minute';
 }
+
+int _dateKey(DateTime value) =>
+    value.year * 10000 + value.month * 100 + value.day;
+
+bool _isSameDate(DateTime left, DateTime right) =>
+    left.year == right.year &&
+    left.month == right.month &&
+    left.day == right.day;
+
+String _shortDate(DateTime value) =>
+    '${value.month.toString().padLeft(2, '0')}.${value.day.toString().padLeft(2, '0')}';
+
+String _weekday(DateTime value) =>
+    const ['월', '화', '수', '목', '금', '토', '일'][value.weekday - 1];

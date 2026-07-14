@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/widgets/football_hero_card.dart';
 import '../../../core/widgets/status_banner.dart';
 import '../data/team_match.dart';
 import '../data/team_match_repository.dart';
@@ -294,48 +295,11 @@ class _HomeTeamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF087F5B), Color(0xFF0CA678)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.home_outlined, color: Colors.white),
-              SizedBox(width: 8),
-              Text(
-                'HOME TEAM',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            teamName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 27,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'TEAM RATING $teamRating',
-            style: const TextStyle(color: Color(0xFFD3F9D8)),
-          ),
-        ],
-      ),
+    return FootballHeroCard(
+      eyebrow: 'HOME TEAM',
+      title: teamName,
+      subtitle: 'TEAM RATING $teamRating',
+      icon: Icons.home_outlined,
     );
   }
 }

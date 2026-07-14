@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/widgets/football_hero_card.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../home/presentation/home_navigation.dart';
 import '../../matches/data/team_match.dart';
@@ -358,46 +359,20 @@ class _TeamHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF087F5B), Color(0xFF0CA678)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return FootballHeroCard(
+      eyebrow: 'TEAM PROFILE',
+      title: team.teamName,
+      subtitle: '리더 ${team.leaderUsername}',
+      icon: Icons.shield_outlined,
+      content: Row(
         children: [
-          const Icon(Icons.shield_outlined, color: Colors.white, size: 40),
-          const SizedBox(height: 16),
+          _HeroMetric(label: 'RATING', value: '${team.teamRating}'),
+          const SizedBox(width: 28),
+          _HeroMetric(label: 'MEMBERS', value: '${team.memberCount}'),
+          const Spacer(),
           Text(
-            team.teamName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '리더 ${team.leaderUsername}',
-            style: const TextStyle(color: Color(0xFFD3F9D8)),
-          ),
-          const SizedBox(height: 22),
-          Row(
-            children: [
-              _HeroMetric(label: 'RATING', value: '${team.teamRating}'),
-              const SizedBox(width: 28),
-              _HeroMetric(label: 'MEMBERS', value: '${team.memberCount}'),
-              const Spacer(),
-              Text(
-                _formatDate(team.createdAt),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
+            _formatDate(team.createdAt),
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),
