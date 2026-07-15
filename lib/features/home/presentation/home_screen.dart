@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/brand_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../announcements/presentation/announcement_list_screen.dart';
 import '../../analytics/presentation/daily_analytics_screen.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../matches/data/team_match_repository.dart';
@@ -207,6 +208,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _openPage(MemberDetailScreen(memberId: memberId));
           }
         },
+        onOpenAnnouncements: () => _openPage(
+          const AnnouncementListScreen(),
+        ),
         onOpenAnalytics: () => _openPage(const DailyAnalyticsScreen()),
         onShowAppInfo: _showAppInfo,
         onLogout: _confirmLogout,

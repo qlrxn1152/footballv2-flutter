@@ -8,6 +8,7 @@ class AppMenuDrawer extends StatelessWidget {
     required this.username,
     required this.onOpenProfile,
     required this.onOpenGoals,
+    required this.onOpenAnnouncements,
     required this.onOpenAnalytics,
     required this.onShowAppInfo,
     required this.onLogout,
@@ -17,6 +18,7 @@ class AppMenuDrawer extends StatelessWidget {
   final String username;
   final VoidCallback onOpenProfile;
   final VoidCallback onOpenGoals;
+  final VoidCallback onOpenAnnouncements;
   final VoidCallback onOpenAnalytics;
   final VoidCallback onShowAppInfo;
   final VoidCallback onLogout;
@@ -131,35 +133,47 @@ class AppMenuDrawer extends StatelessWidget {
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
-              child: Text('나의 풋볼로그', style: _sectionStyle),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
+                    child: Text('나의 풋볼로그', style: _sectionStyle),
+                  ),
+                  _MenuTile(
+                    icon: Icons.person_outline,
+                    label: '내 정보',
+                    onTap: onOpenProfile,
+                  ),
+                  _MenuTile(
+                    icon: Icons.sports_soccer_outlined,
+                    label: '내 득점 기록',
+                    onTap: onOpenGoals,
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
+                    child: Text('서비스', style: _sectionStyle),
+                  ),
+                  _MenuTile(
+                    icon: Icons.campaign_outlined,
+                    label: '공지사항',
+                    onTap: onOpenAnnouncements,
+                  ),
+                  _MenuTile(
+                    icon: Icons.analytics_outlined,
+                    label: '일별 사용 통계',
+                    onTap: onOpenAnalytics,
+                  ),
+                  _MenuTile(
+                    icon: Icons.info_outline,
+                    label: '앱 정보',
+                    onTap: onShowAppInfo,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
-            _MenuTile(
-              icon: Icons.person_outline,
-              label: '내 정보',
-              onTap: onOpenProfile,
-            ),
-            _MenuTile(
-              icon: Icons.sports_soccer_outlined,
-              label: '내 득점 기록',
-              onTap: onOpenGoals,
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
-              child: Text('서비스', style: _sectionStyle),
-            ),
-            _MenuTile(
-              icon: Icons.analytics_outlined,
-              label: '일별 사용 통계',
-              onTap: onOpenAnalytics,
-            ),
-            _MenuTile(
-              icon: Icons.info_outline,
-              label: '앱 정보',
-              onTap: onShowAppInfo,
-            ),
-            const Spacer(),
             const Divider(height: 1),
             _MenuTile(
               icon: Icons.logout,
