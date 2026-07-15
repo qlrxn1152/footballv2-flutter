@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/brand_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../announcements/data/announcement_repository.dart';
 import '../../announcements/presentation/announcement_list_screen.dart';
 import '../../analytics/presentation/daily_analytics_screen.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -14,6 +15,7 @@ import '../../members/presentation/member_ranking_screen.dart';
 import '../../teams/data/team_repository.dart';
 import '../../teams/presentation/team_list_screen.dart';
 import 'app_menu_drawer.dart';
+import 'dashboard_screen.dart';
 import 'home_navigation.dart';
 import 'profile_screen.dart';
 
@@ -25,29 +27,33 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  static const _titles = ['선수 랭킹', '팀', '매치', '내 정보'];
-  static const _pages = [
-    MemberRankingScreen(),
-    TeamListScreen(),
-    MatchHubScreen(),
-    ProfileScreen(),
-  ];
+  static const _titles = ['홈', '선수 랭킹', '팀', '매치', '내 정보'];
 
   void _refreshTab(int index) {
     switch (index) {
       case 0:
+        ref.invalidate(memberMeProvider);
         ref.invalidate(memberRankingsProvider);
+        ref.invalidate(teamsProvider);
+        ref.invalidate(announcementsProvider);
+        for (final status in const ['PENDING', 'MATCHED', 'COMPLETED']) {
+          ref.invalidate(teamMatchesProvider(status));
+        }
+        ref.invalidate(allTeamMatchesProvider);
         break;
       case 1:
-        ref.invalidate(teamsProvider);
+        ref.invalidate(memberRankingsProvider);
         break;
       case 2:
+        ref.invalidate(teamsProvider);
+        break;
+      case 3:
         for (final status in const ['PENDING', 'MATCHED', 'COMPLETED']) {
           ref.invalidate(teamMatchesProvider(status));
         }
         ref.invalidate(memberMeProvider);
         break;
-      case 3:
+      case 4:
         ref.invalidate(memberMeProvider);
         ref.invalidate(myTeamJoinRequestsProvider);
         break;
@@ -65,7 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _openProfile() {
     _closeMenu();
-    _selectTab(3);
+    _selectTab(4);
   }
 
   Future<void> _openPage(Widget page) async {
@@ -120,6 +126,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final index = ref.watch(homeTabIndexProvider);
     final session = ref.watch(authControllerProvider).session;
+    final pages = [
+      DashboardScreen(onSelectTab: _selectTab),
+      const MemberRankingScreen(),
+      const TeamListScreen(),
+      const MatchHubScreen(),
+      const ProfileScreen(),
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -194,7 +207,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       // 선택된 화면만 마운트해 탭 진입 시 해당 autoDispose provider가
       // 항상 새 API 요청을 시작하도록 합니다.
-      body: _pages[index],
+      body: pages[index],
       bottomNavigationBar: FootballNavigationBar(
         selectedIndex: index,
         onDestinationSelected: _selectTab,

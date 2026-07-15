@@ -188,7 +188,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('팀 상세')),
       bottomNavigationBar: FootballNavigationBar(
-        selectedIndex: 1,
+        selectedIndex: 2,
         onDestinationSelected: _selectHomeTab,
       ),
       body: RefreshIndicator(

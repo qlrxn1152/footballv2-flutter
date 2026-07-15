@@ -8,7 +8,7 @@ class HomeTabController extends Notifier<int> {
   int build() => 0;
 
   void select(int index) {
-    if (index < 0 || index > 3 || state == index) return;
+    if (index < 0 || index > 4 || state == index) return;
     state = index;
   }
 }
@@ -47,6 +47,11 @@ class FootballNavigationBar extends StatelessWidget {
           selectedIndex: selectedIndex,
           onDestinationSelected: onDestinationSelected,
           destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: '홈',
+            ),
             NavigationDestination(
               icon: Icon(Icons.leaderboard_outlined),
               selectedIcon: Icon(Icons.leaderboard_rounded),

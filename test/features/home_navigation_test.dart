@@ -27,13 +27,17 @@ void main() {
     );
 
     expect(find.text('선택 탭 0'), findsOneWidget);
-    await tester.tap(find.text('팀'));
+    await tester.tap(find.text('선수'));
     await tester.pumpAndSettle();
     expect(find.text('선택 탭 1'), findsOneWidget);
 
-    await tester.tap(find.text('매치'));
+    await tester.tap(find.text('팀'));
     await tester.pumpAndSettle();
     expect(find.text('선택 탭 2'), findsOneWidget);
+
+    await tester.tap(find.text('매치'));
+    await tester.pumpAndSettle();
+    expect(find.text('선택 탭 3'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
