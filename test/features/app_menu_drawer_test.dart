@@ -6,6 +6,7 @@ import 'package:footballv2_flutter/features/home/presentation/app_menu_drawer.da
 void main() {
   testWidgets('축구공 메뉴에 주요 기능과 브랜드를 표시한다', (tester) async {
     var profileOpened = false;
+    var announcementsOpened = false;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -20,6 +21,7 @@ void main() {
             username: 'test',
             onOpenProfile: () => profileOpened = true,
             onOpenGoals: () {},
+            onOpenAnnouncements: () => announcementsOpened = true,
             onOpenAnalytics: () {},
             onShowAppInfo: () {},
             onLogout: () {},
@@ -36,6 +38,7 @@ void main() {
     expect(find.text('test님'), findsOneWidget);
     expect(find.text('내 정보'), findsOneWidget);
     expect(find.text('내 득점 기록'), findsOneWidget);
+    expect(find.text('공지사항'), findsOneWidget);
     expect(find.text('일별 사용 통계'), findsOneWidget);
     expect(find.text('앱 정보'), findsOneWidget);
     expect(find.text('로그아웃'), findsOneWidget);
@@ -43,5 +46,8 @@ void main() {
     await tester.tap(find.text('내 정보'));
     expect(profileOpened, isTrue);
     expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('공지사항'));
+    expect(announcementsOpened, isTrue);
   });
 }
