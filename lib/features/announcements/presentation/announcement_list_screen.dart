@@ -22,10 +22,15 @@ class AnnouncementListScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _openDetail(BuildContext context, int id) async {
+  Future<void> _openDetail(
+    BuildContext context,
+    WidgetRef ref,
+    int id,
+  ) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => AnnouncementDetailScreen(id: id)),
     );
+    ref.invalidate(announcementsProvider);
   }
 
   @override
@@ -89,6 +94,7 @@ class AnnouncementListScreen extends ConsumerWidget {
                       announcement: item,
                       onTap: () => _openDetail(
                         context,
+                        ref,
                         item.announcementId,
                       ),
                     ),

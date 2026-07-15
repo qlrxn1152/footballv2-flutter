@@ -6,7 +6,9 @@ import '../data/announcement.dart';
 import '../data/announcement_repository.dart';
 
 class AnnouncementCreateScreen extends ConsumerStatefulWidget {
-  const AnnouncementCreateScreen({super.key});
+  const AnnouncementCreateScreen({this.initial, super.key});
+
+  final AnnouncementDetail? initial;
 
   @override
   ConsumerState<AnnouncementCreateScreen> createState() =>
@@ -23,6 +25,20 @@ class _AnnouncementCreateScreenState
   bool _pinned = false;
   bool _submitting = false;
 
+  bool get _editing => widget.initial != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    if (initial == null) return;
+    _type = initial.type;
+    _titleController.text = initial.title;
+    _contentController.text = initial.content;
+    _versionController.text = initial.version ?? '';
+    _pinned = initial.pinned;
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -36,24 +52,27 @@ class _AnnouncementCreateScreenState
     setState(() => _submitting = true);
     try {
       final version = _versionController.text.trim();
-      final created = await ref
-          .read(announcementRepositoryProvider)
-          .createAnnouncement(
-            AnnouncementCreateInput(
-              type: _type,
-              title: _titleController.text.trim(),
-              content: _contentController.text.trim(),
-              version: version.isEmpty ? null : version,
-              pinned: _pinned,
-            ),
-          );
+      final input = AnnouncementCreateInput(
+        type: _type,
+        title: _titleController.text.trim(),
+        content: _contentController.text.trim(),
+        version: version.isEmpty ? null : version,
+        pinned: _pinned,
+      );
+      final repository = ref.read(announcementRepositoryProvider);
+      final saved = _editing
+          ? await repository.updateAnnouncement(widget.initial!.id, input)
+          : await repository.createAnnouncement(input);
       if (!mounted) return;
-      Navigator.of(context).pop(created);
+      Navigator.of(context).pop(saved);
     } catch (error) {
       if (!mounted) return;
+      final fallbackMessage = _editing
+          ? '공지사항을 수정하지 못했습니다.'
+          : '공지사항을 등록하지 못했습니다.';
       final message = error is ApiException
           ? error.message
-          : '공지사항을 등록하지 못했습니다.';
+          : fallbackMessage;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
@@ -65,7 +84,9 @@ class _AnnouncementCreateScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('관리자 공지 작성')),
+      appBar: AppBar(
+        title: Text(_editing ? '관리자 공지 수정' : '관리자 공지 작성'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -77,14 +98,14 @@ class _AnnouncementCreateScreenState
                 color: Theme.of(context).colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.admin_panel_settings_outlined),
-                  SizedBox(width: 10),
+                  const Icon(Icons.admin_panel_settings_outlined),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      '관리자 권한이 있는 계정만 공지사항을 등록할 수 있습니다.',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      '관리자 권한이 있는 계정만 공지사항을 ${_editing ? '수정' : '등록'}할 수 있습니다.',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -165,8 +186,10 @@ class _AnnouncementCreateScreenState
                       dimension: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.send_outlined),
-              label: const Text('공지사항 등록'),
+                  : Icon(
+                      _editing ? Icons.save_outlined : Icons.send_outlined,
+                    ),
+              label: Text(_editing ? '변경사항 저장' : '공지사항 등록'),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(54),
               ),

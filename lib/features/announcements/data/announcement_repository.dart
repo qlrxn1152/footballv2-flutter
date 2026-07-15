@@ -51,6 +51,27 @@ class AnnouncementRepository {
       return AnnouncementDetail.fromJson(jsonMap(response.data));
     });
   }
+
+  Future<AnnouncementDetail> updateAnnouncement(
+    int id,
+    AnnouncementCreateInput input,
+  ) {
+    return runApi(() async {
+      final response = await _apiClient.dio.put<Object?>(
+        '/api/admin/announcements/$id',
+        data: input.toJson(),
+      );
+      return AnnouncementDetail.fromJson(jsonMap(response.data));
+    });
+  }
+
+  Future<void> deleteAnnouncement(int id) {
+    return runApi(() async {
+      await _apiClient.dio.delete<void>(
+        '/api/admin/announcements/$id',
+      );
+    });
+  }
 }
 
 final announcementRepositoryProvider = Provider<AnnouncementRepository>(

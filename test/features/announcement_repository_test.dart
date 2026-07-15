@@ -99,6 +99,77 @@ void main() {
     });
     expect(result.id, 9);
   });
+
+  test('관리자 공지사항 수정 요청을 JSON으로 전송한다', () async {
+    final apiClient = ApiClient(_EmptySessionStore());
+    RequestOptions? capturedRequest;
+    apiClient.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          capturedRequest = options;
+          handler.resolve(
+            Response<Object?>(
+              requestOptions: options,
+              statusCode: 200,
+              data: {
+                'id': 9,
+                'announcementType': 'UPDATE',
+                'title': '기능 업데이트',
+                'content': '수정된 공지 내용',
+                'version': '1.2.0',
+                'pinned': false,
+              },
+            ),
+          );
+        },
+      ),
+    );
+
+    final result = await AnnouncementRepository(apiClient).updateAnnouncement(
+      9,
+      const AnnouncementCreateInput(
+        type: AnnouncementType.update,
+        title: '기능 업데이트',
+        content: '수정된 공지 내용',
+        version: '1.2.0',
+        pinned: false,
+      ),
+    );
+
+    expect(capturedRequest?.method, 'PUT');
+    expect(capturedRequest?.path, '/api/admin/announcements/9');
+    expect(capturedRequest?.data, {
+      'announcementType': 'UPDATE',
+      'title': '기능 업데이트',
+      'content': '수정된 공지 내용',
+      'version': '1.2.0',
+      'pinned': false,
+    });
+    expect(result.title, '기능 업데이트');
+  });
+
+  test('관리자 공지사항 삭제 요청을 전송한다', () async {
+    final apiClient = ApiClient(_EmptySessionStore());
+    RequestOptions? capturedRequest;
+    apiClient.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          capturedRequest = options;
+          handler.resolve(
+            Response<void>(
+              requestOptions: options,
+              statusCode: 204,
+            ),
+          );
+        },
+      ),
+    );
+
+    await AnnouncementRepository(apiClient).deleteAnnouncement(9);
+
+    expect(capturedRequest?.method, 'DELETE');
+    expect(capturedRequest?.path, '/api/admin/announcements/9');
+  });
 }
 
 class _EmptySessionStore implements SessionStore {

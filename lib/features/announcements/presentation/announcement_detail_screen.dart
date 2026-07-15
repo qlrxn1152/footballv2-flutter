@@ -5,21 +5,88 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/announcement.dart';
 import '../data/announcement_repository.dart';
+import 'announcement_create_screen.dart';
+
+enum _AnnouncementAdminAction { edit, delete }
 
 class AnnouncementDetailScreen extends ConsumerWidget {
   const AnnouncementDetailScreen({required this.id, super.key});
 
   final int id;
 
+  Future<void> _openEdit(
+    BuildContext context,
+    WidgetRef ref,
+    AnnouncementDetail item,
+  ) async {
+    final updated = await Navigator.of(context).push<AnnouncementDetail>(
+      MaterialPageRoute(
+        builder: (_) => AnnouncementCreateScreen(initial: item),
+      ),
+    );
+    if (updated == null || !context.mounted) return;
+    ref.invalidate(announcementDetailProvider(id));
+    ref.invalidate(announcementsProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('공지사항 “${updated.title}”을 수정했습니다.')),
+    );
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('공지사항 삭제'),
+        content: const Text('삭제한 공지사항은 복구할 수 없습니다. 정말 삭제할까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await ref.read(announcementRepositoryProvider).deleteAnnouncement(id);
+      if (!context.mounted) return;
+      ref.invalidate(announcementsProvider);
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pop();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('공지사항을 삭제했습니다.')),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      final message = error is ApiException
+          ? error.message
+          : '공지사항을 삭제하지 못했습니다.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(announcementDetailProvider(id));
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('공지사항 상세')),
-      body: detail.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
+    return detail.when(
+      loading: () => const Scaffold(
+        appBar: _AnnouncementDetailAppBar(),
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Scaffold(
+        appBar: const _AnnouncementDetailAppBar(),
+        body: Center(
           child: Padding(
             padding: const EdgeInsets.all(28),
             child: Column(
@@ -42,7 +109,45 @@ class AnnouncementDetailScreen extends ConsumerWidget {
             ),
           ),
         ),
-        data: (item) => ListView(
+      ),
+      data: (item) => Scaffold(
+        appBar: AppBar(
+          title: const Text('공지사항 상세'),
+          actions: [
+            PopupMenuButton<_AnnouncementAdminAction>(
+              key: const ValueKey('announcement-admin-menu'),
+              tooltip: '관리자 기능',
+              onSelected: (action) async {
+                switch (action) {
+                  case _AnnouncementAdminAction.edit:
+                    await _openEdit(context, ref, item);
+                  case _AnnouncementAdminAction.delete:
+                    await _delete(context, ref);
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: _AnnouncementAdminAction.edit,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('공지 수정'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _AnnouncementAdminAction.delete,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.delete_outline),
+                    title: Text('공지 삭제'),
+                  ),
+                ),
+              ],
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+            ),
+          ],
+        ),
+        body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           children: [
             Row(
@@ -95,6 +200,19 @@ class AnnouncementDetailScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _AnnouncementDetailAppBar extends StatelessWidget
+    implements PreferredSizeWidget {
+  const _AnnouncementDetailAppBar();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(title: const Text('공지사항 상세'));
   }
 }
 
