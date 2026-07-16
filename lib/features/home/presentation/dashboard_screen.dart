@@ -79,14 +79,6 @@ class DashboardScreen extends ConsumerWidget {
               context,
               TeamDetailScreen(teamId: teamId),
             ),
-            onOpenTeamBoard: (teamId, teamName, memberId) => _push(
-              context,
-              TeamPostListScreen(
-                teamId: teamId,
-                teamName: teamName,
-                currentMemberId: memberId,
-              ),
-            ),
           ),
           const SizedBox(height: 22),
           const _SectionTitle(title: '빠른 메뉴', subtitle: '원하는 곳으로 바로 이동하세요'),
@@ -137,6 +129,33 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+          member.when(
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
+            data: (item) {
+              if (item.teamId == null) {
+                return const SizedBox.shrink();
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: _QuickAction(
+                  key: const ValueKey('dashboard-team-board-action'),
+                  icon: Icons.forum_outlined,
+                  label: '${item.teamName ?? '내 팀'} 게시판',
+                  color: const Color(0xFF0B7285),
+                  onTap: () => _push(
+                    context,
+                    TeamPostListScreen(
+                      teamId: item.teamId!,
+                      teamName: item.teamName ?? '내 팀',
+                      currentMemberId: item.memberId,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 24),
           _SectionTitle(
@@ -200,17 +219,11 @@ class _WelcomeCard extends StatelessWidget {
     required this.member,
     required this.onOpenProfile,
     required this.onOpenTeam,
-    required this.onOpenTeamBoard,
   });
 
   final AsyncValue<MemberMe> member;
   final VoidCallback onOpenProfile;
   final ValueChanged<int> onOpenTeam;
-  final void Function(
-    int teamId,
-    String teamName,
-    int memberId,
-  ) onOpenTeamBoard;
 
   @override
   Widget build(BuildContext context) {
@@ -295,17 +308,6 @@ class _WelcomeCard extends StatelessWidget {
                           icon: Icons.group_add_outlined,
                           text: '소속 팀 없음',
                           onTap: onOpenProfile,
-                        ),
-                      if (item.teamId != null)
-                        _WelcomePill(
-                          key: const ValueKey('dashboard-team-board-action'),
-                          icon: Icons.forum_outlined,
-                          text: '팀 게시판',
-                          onTap: () => onOpenTeamBoard(
-                            item.teamId!,
-                            item.teamName ?? '내 팀',
-                            item.memberId,
-                          ),
                         ),
                     ],
                   ),
