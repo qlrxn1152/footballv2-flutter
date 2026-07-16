@@ -7,6 +7,7 @@ void main() {
       'memberId': 10,
       'username': 'player',
       'memberRating': 1500,
+      'authority': 'ADMIN',
       'teamId': 3,
       'teamName': 'FootMasters',
       'teamRole': 'MEMBER',
@@ -16,6 +17,7 @@ void main() {
 
     expect(member.hasTeam, isTrue);
     expect(member.isTeamLeader, isFalse);
+    expect(member.isAdmin, isTrue);
     expect(member.teamName, 'FootMasters');
     expect(member.joinedAt, DateTime(2026, 7, 10, 10, 30));
   });
@@ -33,6 +35,7 @@ void main() {
     });
 
     expect(member.hasTeam, isFalse);
+    expect(member.isAdmin, isFalse);
     expect(member.teamId, isNull);
     expect(member.joinedAt, isNull);
   });

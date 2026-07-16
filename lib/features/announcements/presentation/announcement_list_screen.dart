@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../home/presentation/home_navigation.dart';
+import '../../members/data/member_repository.dart';
 import '../data/announcement.dart';
 import '../data/announcement_repository.dart';
 import 'announcement_create_screen.dart';
@@ -37,6 +38,11 @@ class AnnouncementListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final announcements = ref.watch(announcementsProvider);
+    final isAdmin = ref.watch(memberMeProvider).when(
+      data: (member) => member.isAdmin,
+      error: (_, _) => false,
+      loading: () => false,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -50,12 +56,14 @@ class AnnouncementListScreen extends ConsumerWidget {
         ],
       ),
       bottomNavigationBar: const FootballPageNavigationBar(),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('announcement-create-button'),
-        onPressed: () => _openCreate(context, ref),
-        icon: const Icon(Icons.edit_note_outlined),
-        label: const Text('관리자 작성'),
-      ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton.extended(
+              key: const ValueKey('announcement-create-button'),
+              onPressed: () => _openCreate(context, ref),
+              icon: const Icon(Icons.edit_note_outlined),
+              label: const Text('관리자 작성'),
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(announcementsProvider);

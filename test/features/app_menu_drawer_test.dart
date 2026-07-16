@@ -19,6 +19,7 @@ void main() {
           ),
           endDrawer: AppMenuDrawer(
             username: 'test',
+            isAdmin: true,
             onOpenProfile: () => profileOpened = true,
             onOpenGoals: () {},
             onOpenTeamBoard: () {},
@@ -37,6 +38,7 @@ void main() {
     expect(find.text(BrandConfig.name), findsOneWidget);
     expect(find.text(BrandConfig.slogan), findsOneWidget);
     expect(find.text('test님'), findsOneWidget);
+    expect(find.byKey(const ValueKey('admin-badge')), findsOneWidget);
     expect(find.text('내 정보'), findsOneWidget);
     expect(find.text('내 득점 기록'), findsOneWidget);
     expect(find.text('팀 게시판'), findsOneWidget);

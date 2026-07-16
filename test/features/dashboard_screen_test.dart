@@ -26,6 +26,7 @@ void main() {
               memberId: 1,
               username: 'test',
               memberRating: 1530,
+              authority: 'ADMIN',
               teamId: 3,
               teamName: 'teamA',
               teamRole: 'LEADER',
@@ -104,6 +105,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('test님, 오늘도 뛰어볼까요?'), findsOneWidget);
+    expect(find.byKey(const ValueKey('admin-badge')), findsOneWidget);
     expect(find.text('teamA'), findsWidgets);
     expect(find.text('빠른 메뉴'), findsOneWidget);
     expect(find.text('teamA 게시판'), findsOneWidget);

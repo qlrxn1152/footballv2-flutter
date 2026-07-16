@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../home/presentation/home_navigation.dart';
+import '../../members/data/member_repository.dart';
 import '../data/announcement.dart';
 import '../data/announcement_repository.dart';
 import 'announcement_create_screen.dart';
@@ -79,6 +80,11 @@ class AnnouncementDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(announcementDetailProvider(id));
+    final isAdmin = ref.watch(memberMeProvider).when(
+      data: (member) => member.isAdmin,
+      error: (_, _) => false,
+      loading: () => false,
+    );
 
     return detail.when(
       loading: () => const Scaffold(
@@ -116,39 +122,41 @@ class AnnouncementDetailScreen extends ConsumerWidget {
       data: (item) => Scaffold(
         appBar: AppBar(
           title: const Text('공지사항 상세'),
-          actions: [
-            PopupMenuButton<_AnnouncementAdminAction>(
-              key: const ValueKey('announcement-admin-menu'),
-              tooltip: '관리자 기능',
-              onSelected: (action) async {
-                switch (action) {
-                  case _AnnouncementAdminAction.edit:
-                    await _openEdit(context, ref, item);
-                  case _AnnouncementAdminAction.delete:
-                    await _delete(context, ref);
-                }
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(
-                  value: _AnnouncementAdminAction.edit,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.edit_outlined),
-                    title: Text('공지 수정'),
+          actions: isAdmin
+              ? [
+                  PopupMenuButton<_AnnouncementAdminAction>(
+                    key: const ValueKey('announcement-admin-menu'),
+                    tooltip: '관리자 기능',
+                    onSelected: (action) async {
+                      switch (action) {
+                        case _AnnouncementAdminAction.edit:
+                          await _openEdit(context, ref, item);
+                        case _AnnouncementAdminAction.delete:
+                          await _delete(context, ref);
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: _AnnouncementAdminAction.edit,
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.edit_outlined),
+                          title: Text('공지 수정'),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: _AnnouncementAdminAction.delete,
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.delete_outline),
+                          title: Text('공지 삭제'),
+                        ),
+                      ),
+                    ],
+                    icon: const Icon(Icons.admin_panel_settings_outlined),
                   ),
-                ),
-                PopupMenuItem(
-                  value: _AnnouncementAdminAction.delete,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.delete_outline),
-                    title: Text('공지 삭제'),
-                  ),
-                ),
-              ],
-              icon: const Icon(Icons.admin_panel_settings_outlined),
-            ),
-          ],
+                ]
+              : null,
         ),
         bottomNavigationBar: const FootballPageNavigationBar(),
         body: ListView(
