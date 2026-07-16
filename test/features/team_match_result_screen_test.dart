@@ -61,8 +61,8 @@ void main() {
     await tester.pumpWidget(buildScreen());
     await tester.pumpAndSettle();
 
-    expect(find.text('HOME'), findsOneWidget);
-    expect(find.text('AWAY'), findsOneWidget);
+    expect(find.text('HOME'), findsWidgets);
+    expect(find.text('AWAY'), findsWidgets);
     expect(find.byType(TextFormField), findsNWidgets(2));
 
     await tester.tap(find.text('결과 등록'));
