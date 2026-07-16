@@ -10,6 +10,7 @@ import '../../matches/data/team_match_repository.dart';
 import '../../matches/presentation/team_match_create_screen.dart';
 import '../../matches/presentation/team_match_history_section.dart';
 import '../../members/data/member_repository.dart';
+import '../../team_posts/presentation/team_post_list_screen.dart';
 import '../data/team_models.dart';
 import '../data/team_repository.dart';
 import 'team_join_requests_screen.dart';
@@ -176,6 +177,18 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
     );
   }
 
+  Future<void> _openTeamBoard(TeamDetail team, int memberId) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => TeamPostListScreen(
+          teamId: team.teamId,
+          teamName: team.teamName,
+          currentMemberId: memberId,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final detail = ref.watch(teamDetailProvider(widget.teamId));
@@ -312,6 +325,13 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                           : const Icon(Icons.person_add_alt_1),
                       label: const Text('팀 가입 신청'),
                     ),
+                  if (isMember) ...[
+                    const SizedBox(height: 16),
+                    _TeamBoardCard(
+                      teamName: team.teamName,
+                      onTap: () => _openTeamBoard(team, memberId),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   TeamMatchHistorySection(teamId: team.teamId),
                   const SizedBox(height: 24),
@@ -345,6 +365,63 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
                 ],
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamBoardCard extends StatelessWidget {
+  const _TeamBoardCard({required this.teamName, required this.onTap});
+
+  final String teamName;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('team-board-link'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(Icons.forum_outlined),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '팀 게시판',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '$teamName 멤버들과 이야기를 나눠보세요.',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
           ),
         ),
       ),

@@ -14,6 +14,7 @@ import '../../members/presentation/member_detail_screen.dart';
 import '../../members/presentation/member_ranking_screen.dart';
 import '../../teams/data/team_repository.dart';
 import '../../teams/presentation/team_list_screen.dart';
+import '../../team_posts/presentation/team_post_list_screen.dart';
 import 'app_menu_drawer.dart';
 import 'dashboard_screen.dart';
 import 'home_navigation.dart';
@@ -94,6 +95,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       applicationIcon: const Icon(Icons.sports_soccer, size: 44),
       children: const [Text(BrandConfig.slogan)],
     );
+  }
+
+  Future<void> _openTeamBoard() async {
+    _closeMenu();
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+    try {
+      final member = await ref.read(memberMeProvider.future);
+      if (!mounted) return;
+      final teamId = member.teamId;
+      if (teamId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('팀에 가입한 뒤 게시판을 이용할 수 있습니다.')),
+        );
+        return;
+      }
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => TeamPostListScreen(
+            teamId: teamId,
+            teamName: member.teamName ?? '내 팀',
+            currentMemberId: member.memberId,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('내 팀 정보를 확인하지 못했습니다.')),
+      );
+    }
   }
 
   Future<void> _confirmLogout() async {
@@ -221,6 +253,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _openPage(MemberDetailScreen(memberId: memberId));
           }
         },
+        onOpenTeamBoard: _openTeamBoard,
         onOpenAnnouncements: () => _openPage(
           const AnnouncementListScreen(),
         ),
