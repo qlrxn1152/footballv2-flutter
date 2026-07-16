@@ -277,8 +277,8 @@ void main() {
     await tester.tap(find.text('결과 입력'));
     await tester.pumpAndSettle();
     expect(find.text('매치 결과 입력'), findsOneWidget);
-    expect(find.text('teamA'), findsNWidgets(2));
-    expect(find.text('teamB'), findsNWidgets(2));
+    expect(find.text('teamA'), findsOneWidget);
+    expect(find.text('teamB'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
