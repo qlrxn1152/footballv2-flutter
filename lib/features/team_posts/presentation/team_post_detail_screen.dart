@@ -5,6 +5,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/team_post.dart';
 import '../data/team_post_repository.dart';
+import 'team_post_comments_section.dart';
 import 'team_post_editor_screen.dart';
 
 enum _TeamPostAction { edit, delete }
@@ -198,6 +199,14 @@ class TeamPostDetailScreen extends ConsumerWidget {
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   height: 1.75,
                 ),
+              ),
+              const SizedBox(height: 28),
+              const Divider(),
+              const SizedBox(height: 20),
+              TeamPostCommentsSection(
+                teamId: teamId,
+                postId: postId,
+                currentMemberId: currentMemberId,
               ),
             ],
           ),
