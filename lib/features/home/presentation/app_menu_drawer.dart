@@ -8,6 +8,7 @@ class AppMenuDrawer extends StatelessWidget {
     required this.username,
     required this.onOpenProfile,
     required this.onOpenGoals,
+    required this.onOpenTeamBoard,
     required this.onOpenAnnouncements,
     required this.onOpenAnalytics,
     required this.onShowAppInfo,
@@ -18,6 +19,7 @@ class AppMenuDrawer extends StatelessWidget {
   final String username;
   final VoidCallback onOpenProfile;
   final VoidCallback onOpenGoals;
+  final VoidCallback onOpenTeamBoard;
   final VoidCallback onOpenAnnouncements;
   final VoidCallback onOpenAnalytics;
   final VoidCallback onShowAppInfo;
@@ -150,6 +152,11 @@ class AppMenuDrawer extends StatelessWidget {
                     icon: Icons.sports_soccer_outlined,
                     label: '내 득점 기록',
                     onTap: onOpenGoals,
+                  ),
+                  _MenuTile(
+                    icon: Icons.forum_outlined,
+                    label: '팀 게시판',
+                    onTap: onOpenTeamBoard,
                   ),
                   const Padding(
                     padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
