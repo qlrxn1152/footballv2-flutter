@@ -106,6 +106,29 @@ class TeamPostRepository {
       return TeamPostComment.fromJson(jsonMap(response.data));
     });
   }
+
+  Future<TeamPostComment> updateComment(
+    int teamId,
+    int postId,
+    int commentId,
+    String content,
+  ) {
+    return runApi(() async {
+      final response = await _apiClient.dio.put<Object?>(
+        '/api/teams/$teamId/posts/$postId/comments/$commentId',
+        data: {'content': content},
+      );
+      return TeamPostComment.fromJson(jsonMap(response.data));
+    });
+  }
+
+  Future<void> deleteComment(int teamId, int postId, int commentId) {
+    return runApi(() async {
+      await _apiClient.dio.delete<void>(
+        '/api/teams/$teamId/posts/$postId/comments/$commentId',
+      );
+    });
+  }
 }
 
 final teamPostRepositoryProvider = Provider<TeamPostRepository>(

@@ -149,4 +149,72 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('작성자에게만 댓글 수정과 삭제 메뉴를 제공한다', (tester) async {
+    const post = TeamPostDetail(
+      postId: 7,
+      teamId: 3,
+      authorMemberId: 2,
+      title: '이번 주 경기 안내',
+      content: '토요일 18시에 모입니다.',
+      authorUsername: 'test',
+      createdAt: null,
+      updatedAt: null,
+    );
+    const myComment = TeamPostComment(
+      commentId: 12,
+      postId: 7,
+      authorMemberId: 2,
+      authorUsername: 'test',
+      content: '참석합니다.',
+      createdAt: null,
+      updatedAt: null,
+    );
+    const otherComment = TeamPostComment(
+      commentId: 13,
+      postId: 7,
+      authorMemberId: 3,
+      authorUsername: 'player',
+      content: '저도 참석합니다.',
+      createdAt: null,
+      updatedAt: null,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          teamPostDetailProvider(
+            (teamId: 3, postId: 7),
+          ).overrideWith((ref) async => post),
+          teamPostCommentsProvider(
+            (teamId: 3, postId: 7),
+          ).overrideWith((ref) async => const [myComment, otherComment]),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const TeamPostDetailScreen(
+            teamId: 3,
+            postId: 7,
+            currentMemberId: 2,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final myCommentMenu = find.byKey(
+      const ValueKey('team-post-comment-menu-12'),
+    );
+    await tester.ensureVisible(myCommentMenu);
+    await tester.tap(myCommentMenu);
+    await tester.pumpAndSettle();
+
+    expect(find.text('댓글 수정'), findsOneWidget);
+    expect(find.text('댓글 삭제'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('team-post-comment-menu-13')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }

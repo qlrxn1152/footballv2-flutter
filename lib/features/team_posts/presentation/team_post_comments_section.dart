@@ -6,6 +6,8 @@ import '../../../core/theme/app_theme.dart';
 import '../data/team_post_comment.dart';
 import '../data/team_post_repository.dart';
 
+enum _CommentAction { edit, delete }
+
 class TeamPostCommentsSection extends ConsumerStatefulWidget {
   const TeamPostCommentsSection({
     required this.teamId,
@@ -27,6 +29,7 @@ class _TeamPostCommentsSectionState
     extends ConsumerState<TeamPostCommentsSection> {
   final _controller = TextEditingController();
   bool _submitting = false;
+  int? _mutatingCommentId;
 
   TeamPostQuery get _query => (
     teamId: widget.teamId,
@@ -71,6 +74,102 @@ class _TeamPostCommentsSectionState
       ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _refreshComments() async {
+    ref.invalidate(teamPostCommentsProvider(_query));
+    await ref.read(teamPostCommentsProvider(_query).future);
+  }
+
+  Future<void> _editComment(TeamPostComment comment) async {
+    if (_mutatingCommentId != null) return;
+
+    final content = await showDialog<String>(
+      context: context,
+      builder: (_) => _CommentEditDialog(
+        commentId: comment.commentId,
+        initialContent: comment.content,
+      ),
+    );
+    if (content == null || !mounted) return;
+
+    setState(() => _mutatingCommentId = comment.commentId);
+    try {
+      await ref
+          .read(teamPostRepositoryProvider)
+          .updateComment(
+            widget.teamId,
+            widget.postId,
+            comment.commentId,
+            content,
+          );
+      if (!mounted) return;
+      await _refreshComments();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('댓글을 수정했습니다.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is ApiException
+          ? error.message
+          : '댓글을 수정하지 못했습니다.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) setState(() => _mutatingCommentId = null);
+    }
+  }
+
+  Future<void> _deleteComment(TeamPostComment comment) async {
+    if (_mutatingCommentId != null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('댓글 삭제'),
+        content: const Text('삭제한 댓글은 복구할 수 없습니다. 정말 삭제할까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            key: ValueKey('team-post-comment-delete-confirm-${comment.commentId}'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _mutatingCommentId = comment.commentId);
+    try {
+      await ref
+          .read(teamPostRepositoryProvider)
+          .deleteComment(widget.teamId, widget.postId, comment.commentId);
+      if (!mounted) return;
+      await _refreshComments();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('댓글을 삭제했습니다.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is ApiException
+          ? error.message
+          : '댓글을 삭제하지 못했습니다.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) setState(() => _mutatingCommentId = null);
     }
   }
 
@@ -126,6 +225,9 @@ class _TeamPostCommentsSectionState
                           comment: comment,
                           isMine:
                               comment.authorMemberId == widget.currentMemberId,
+                          isBusy: _mutatingCommentId == comment.commentId,
+                          onEdit: () => _editComment(comment),
+                          onDelete: () => _deleteComment(comment),
                         ),
                       ),
                   ],
@@ -165,10 +267,19 @@ class _TeamPostCommentsSectionState
 }
 
 class _CommentCard extends StatelessWidget {
-  const _CommentCard({required this.comment, required this.isMine});
+  const _CommentCard({
+    required this.comment,
+    required this.isMine,
+    required this.isBusy,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   final TeamPostComment comment;
   final bool isMine;
+  final bool isBusy;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -222,10 +333,68 @@ class _CommentCard extends StatelessWidget {
                       ),
                     ],
                     const Spacer(),
+                    if (isBusy)
+                      const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    else if (isMine)
+                      PopupMenuButton<_CommentAction>(
+                        key: ValueKey(
+                          'team-post-comment-menu-${comment.commentId}',
+                        ),
+                        tooltip: '댓글 관리',
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.more_vert, size: 20),
+                        onSelected: (action) {
+                          switch (action) {
+                            case _CommentAction.edit:
+                              onEdit();
+                            case _CommentAction.delete:
+                              onDelete();
+                          }
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: _CommentAction.edit,
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(Icons.edit_outlined),
+                              title: Text('댓글 수정'),
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: _CommentAction.delete,
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(Icons.delete_outline),
+                              title: Text('댓글 삭제'),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                Row(
+                  children: [
                     Text(
                       _formatDateTime(comment.createdAt),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
+                    if (_wasEdited(comment)) ...[
+                      const SizedBox(width: 6),
+                      const Text(
+                        '수정됨',
+                        style: TextStyle(
+                          color: AppTheme.fieldGreen,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 7),
@@ -240,6 +409,75 @@ class _CommentCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CommentEditDialog extends StatefulWidget {
+  const _CommentEditDialog({
+    required this.commentId,
+    required this.initialContent,
+  });
+
+  final int commentId;
+  final String initialContent;
+
+  @override
+  State<_CommentEditDialog> createState() => _CommentEditDialogState();
+}
+
+class _CommentEditDialogState extends State<_CommentEditDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialContent);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('댓글 수정'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          key: ValueKey('team-post-comment-edit-field-${widget.commentId}'),
+          controller: _controller,
+          autofocus: true,
+          minLines: 3,
+          maxLines: 6,
+          maxLength: 1000,
+          decoration: const InputDecoration(
+            labelText: '댓글 내용',
+            alignLabelWithHint: true,
+          ),
+          validator: (value) => value == null || value.trim().isEmpty
+              ? '댓글 내용을 입력해주세요.'
+              : null,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('취소'),
+        ),
+        FilledButton(
+          key: ValueKey('team-post-comment-edit-submit-${widget.commentId}'),
+          onPressed: () {
+            if (_formKey.currentState?.validate() != true) return;
+            Navigator.of(context).pop(_controller.text.trim());
+          },
+          child: const Text('수정'),
+        ),
+      ],
     );
   }
 }
@@ -307,4 +545,11 @@ String _formatDateTime(DateTime? value) {
   final hour = value.hour.toString().padLeft(2, '0');
   final minute = value.minute.toString().padLeft(2, '0');
   return '$month.$day $hour:$minute';
+}
+
+bool _wasEdited(TeamPostComment comment) {
+  final createdAt = comment.createdAt;
+  final updatedAt = comment.updatedAt;
+  if (createdAt == null || updatedAt == null) return false;
+  return updatedAt.isAfter(createdAt);
 }

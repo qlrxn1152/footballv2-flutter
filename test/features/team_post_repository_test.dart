@@ -159,6 +159,51 @@ void main() {
     expect(request?.data, {'content': '참석합니다.'});
     expect(comment.commentId, 3);
   });
+
+  test('팀 게시글 댓글 수정과 삭제 요청을 전송한다', () async {
+    final apiClient = ApiClient(_EmptySessionStore());
+    final requests = <RequestOptions>[];
+    apiClient.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          requests.add(options);
+          if (options.method == 'PUT') {
+            handler.resolve(
+              Response<Object?>(
+                requestOptions: options,
+                statusCode: 200,
+                data: {
+                  ..._commentJson(12, '2026-07-16T12:20:00'),
+                  'content': '수정한 댓글입니다.',
+                  'updatedAt': '2026-07-16T12:30:00',
+                },
+              ),
+            );
+          } else {
+            handler.resolve(
+              Response<void>(requestOptions: options, statusCode: 200),
+            );
+          }
+        },
+      ),
+    );
+    final repository = TeamPostRepository(apiClient);
+
+    final updated = await repository.updateComment(
+      3,
+      7,
+      12,
+      '수정한 댓글입니다.',
+    );
+    await repository.deleteComment(3, 7, 12);
+
+    expect(requests[0].method, 'PUT');
+    expect(requests[0].path, '/api/teams/3/posts/7/comments/12');
+    expect(requests[0].data, {'content': '수정한 댓글입니다.'});
+    expect(requests[1].method, 'DELETE');
+    expect(requests[1].path, '/api/teams/3/posts/7/comments/12');
+    expect(updated.content, '수정한 댓글입니다.');
+  });
 }
 
 Map<String, Object?> _summaryJson(int id, String createdAt) => {
