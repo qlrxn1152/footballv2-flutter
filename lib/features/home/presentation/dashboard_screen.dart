@@ -13,6 +13,7 @@ import '../../members/data/member_account.dart';
 import '../../members/data/member_ranking.dart';
 import '../../members/data/member_repository.dart';
 import '../../members/presentation/member_detail_screen.dart';
+import '../../team_posts/presentation/team_post_list_screen.dart';
 import '../../teams/data/team_models.dart';
 import '../../teams/data/team_repository.dart';
 import '../../teams/presentation/team_detail_screen.dart';
@@ -77,6 +78,14 @@ class DashboardScreen extends ConsumerWidget {
             onOpenTeam: (teamId) => _push(
               context,
               TeamDetailScreen(teamId: teamId),
+            ),
+            onOpenTeamBoard: (teamId, teamName, memberId) => _push(
+              context,
+              TeamPostListScreen(
+                teamId: teamId,
+                teamName: teamName,
+                currentMemberId: memberId,
+              ),
             ),
           ),
           const SizedBox(height: 22),
@@ -191,11 +200,17 @@ class _WelcomeCard extends StatelessWidget {
     required this.member,
     required this.onOpenProfile,
     required this.onOpenTeam,
+    required this.onOpenTeamBoard,
   });
 
   final AsyncValue<MemberMe> member;
   final VoidCallback onOpenProfile;
   final ValueChanged<int> onOpenTeam;
+  final void Function(
+    int teamId,
+    String teamName,
+    int memberId,
+  ) onOpenTeamBoard;
 
   @override
   Widget build(BuildContext context) {
@@ -281,6 +296,17 @@ class _WelcomeCard extends StatelessWidget {
                           text: '소속 팀 없음',
                           onTap: onOpenProfile,
                         ),
+                      if (item.teamId != null)
+                        _WelcomePill(
+                          key: const ValueKey('dashboard-team-board-action'),
+                          icon: Icons.forum_outlined,
+                          text: '팀 게시판',
+                          onTap: () => onOpenTeamBoard(
+                            item.teamId!,
+                            item.teamName ?? '내 팀',
+                            item.memberId,
+                          ),
+                        ),
                     ],
                   ),
                 ],
@@ -328,6 +354,7 @@ class _WelcomePill extends StatelessWidget {
     required this.icon,
     required this.text,
     required this.onTap,
+    super.key,
   });
 
   final IconData icon;
