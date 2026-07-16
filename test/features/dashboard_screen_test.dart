@@ -132,14 +132,12 @@ void main() {
     expect(find.text('오늘의 순위'), findsOneWidget);
     expect(find.text('풋볼로그 운영 안내'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('dashboard-team-board-action')),
-      -300,
-      scrollable: find.byType(Scrollable).first,
+    final teamBoardAction = find.byKey(
+      const ValueKey('dashboard-team-board-action'),
     );
-    await tester.tap(
-      find.byKey(const ValueKey('dashboard-team-board-action')),
-    );
+    await tester.ensureVisible(teamBoardAction);
+    await tester.pumpAndSettle();
+    await tester.tap(teamBoardAction);
     await tester.pumpAndSettle();
     expect(find.text('teamA 라커룸'), findsOneWidget);
     expect(tester.takeException(), isNull);
