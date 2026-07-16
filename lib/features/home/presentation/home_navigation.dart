@@ -46,7 +46,12 @@ class FootballPageNavigationBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final requestedIndex = selectedIndex;
-    final currentIndex = requestedIndex ?? ref.watch(homeTabIndexProvider);
+    final int currentIndex;
+    if (requestedIndex case final int index) {
+      currentIndex = index;
+    } else {
+      currentIndex = ref.watch(homeTabIndexProvider);
+    }
 
     return FootballNavigationBar(
       selectedIndex: currentIndex,
