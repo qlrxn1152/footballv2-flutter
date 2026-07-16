@@ -21,6 +21,7 @@ void main() {
             username: 'test',
             onOpenProfile: () => profileOpened = true,
             onOpenGoals: () {},
+            onOpenTeamBoard: () {},
             onOpenAnnouncements: () => announcementsOpened = true,
             onOpenAnalytics: () {},
             onShowAppInfo: () {},
@@ -38,6 +39,7 @@ void main() {
     expect(find.text('test님'), findsOneWidget);
     expect(find.text('내 정보'), findsOneWidget);
     expect(find.text('내 득점 기록'), findsOneWidget);
+    expect(find.text('팀 게시판'), findsOneWidget);
     expect(find.text('공지사항'), findsOneWidget);
     expect(find.text('일별 사용 통계'), findsOneWidget);
     expect(find.text('앱 정보'), findsOneWidget);
