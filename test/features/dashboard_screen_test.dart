@@ -10,6 +10,7 @@ import 'package:footballv2_flutter/features/matches/data/team_match_repository.d
 import 'package:footballv2_flutter/features/members/data/member_account.dart';
 import 'package:footballv2_flutter/features/members/data/member_ranking.dart';
 import 'package:footballv2_flutter/features/members/data/member_repository.dart';
+import 'package:footballv2_flutter/features/team_posts/data/team_post_repository.dart';
 import 'package:footballv2_flutter/features/teams/data/team_models.dart';
 import 'package:footballv2_flutter/features/teams/data/team_repository.dart';
 
@@ -88,6 +89,7 @@ void main() {
               ),
             ],
           ),
+          teamPostsProvider(3).overrideWith((ref) async => const []),
         ],
         child: MaterialApp(
           theme: AppTheme.light,
@@ -104,6 +106,10 @@ void main() {
     expect(find.text('test님, 오늘도 뛰어볼까요?'), findsOneWidget);
     expect(find.text('teamA'), findsWidgets);
     expect(find.text('빠른 메뉴'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('dashboard-team-board-action')),
+      findsOneWidget,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey('dashboard-members-action')),
@@ -124,6 +130,17 @@ void main() {
     );
     expect(find.text('오늘의 순위'), findsOneWidget);
     expect(find.text('풋볼로그 운영 안내'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('dashboard-team-board-action')),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('dashboard-team-board-action')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('teamA 라커룸'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
