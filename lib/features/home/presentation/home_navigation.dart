@@ -17,6 +17,52 @@ final homeTabIndexProvider = NotifierProvider<HomeTabController, int>(
   HomeTabController.new,
 );
 
+class FootballPageShell extends StatelessWidget {
+  const FootballPageShell({
+    required this.child,
+    this.selectedIndex,
+    super.key,
+  });
+
+  final Widget child;
+  final int? selectedIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: FootballPageNavigationBar(
+        selectedIndex: selectedIndex,
+      ),
+    );
+  }
+}
+
+class FootballPageNavigationBar extends ConsumerWidget {
+  const FootballPageNavigationBar({this.selectedIndex, super.key});
+
+  final int? selectedIndex;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final requestedIndex = selectedIndex;
+    final int currentIndex;
+    if (requestedIndex case final int index) {
+      currentIndex = index;
+    } else {
+      currentIndex = ref.watch(homeTabIndexProvider);
+    }
+
+    return FootballNavigationBar(
+      selectedIndex: currentIndex,
+      onDestinationSelected: (index) {
+        ref.read(homeTabIndexProvider.notifier).select(index);
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+    );
+  }
+}
+
 class FootballNavigationBar extends StatelessWidget {
   const FootballNavigationBar({
     required this.selectedIndex,

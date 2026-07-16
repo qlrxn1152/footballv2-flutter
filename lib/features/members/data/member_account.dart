@@ -8,6 +8,7 @@ class MemberMe {
     required this.memberId,
     required this.username,
     required this.memberRating,
+    this.authority = 'USER',
     required this.teamId,
     required this.teamName,
     required this.teamRole,
@@ -18,6 +19,7 @@ class MemberMe {
   final int memberId;
   final String username;
   final int memberRating;
+  final String authority;
   final int? teamId;
   final String? teamName;
   final String? teamRole;
@@ -26,12 +28,14 @@ class MemberMe {
 
   bool get hasTeam => teamId != null;
   bool get isTeamLeader => teamRole == 'LEADER';
+  bool get isAdmin => authority == 'ADMIN';
 
   factory MemberMe.fromJson(Map<String, dynamic> json) {
     return MemberMe(
       memberId: (json['memberId'] as num).toInt(),
       username: json['username'] as String,
       memberRating: (json['memberRating'] as num).toInt(),
+      authority: json['authority'] as String? ?? 'USER',
       teamId: (json['teamId'] as num?)?.toInt(),
       teamName: json['teamName'] as String?,
       teamRole: json['teamRole'] as String?,

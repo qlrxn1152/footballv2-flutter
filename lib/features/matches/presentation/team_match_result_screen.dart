@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/status_banner.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../../teams/data/team_models.dart';
 import '../../teams/data/team_repository.dart';
 import '../data/team_match.dart';
@@ -172,18 +173,27 @@ class _TeamMatchResultScreenState
 
     return Scaffold(
       appBar: AppBar(title: const Text('매치 결과 입력')),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-        child: FilledButton.icon(
-          onPressed: _submitting ? null : _submit,
-          icon: _submitting
-              ? const SizedBox.square(
-                  dimension: 19,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.sports_score_outlined),
-          label: const Text('결과 등록'),
-        ),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SafeArea(
+            top: false,
+            bottom: false,
+            minimum: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+            child: FilledButton.icon(
+              onPressed: _submitting ? null : _submit,
+              icon: _submitting
+                  ? const SizedBox.square(
+                      dimension: 19,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sports_score_outlined),
+              label: const Text('결과 등록'),
+            ),
+          ),
+          const FootballPageNavigationBar(selectedIndex: 3),
+        ],
       ),
       body: Form(
         key: _formKey,

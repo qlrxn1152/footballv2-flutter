@@ -11,6 +11,7 @@ void main() {
     memberId: 2,
     username: 'test',
     memberRating: 1530,
+    authority: 'ADMIN',
     teamId: 3,
     teamName: 'teamA',
     teamRole: 'LEADER',
@@ -41,6 +42,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('test'), findsOneWidget);
+    expect(find.byKey(const ValueKey('admin-badge')), findsOneWidget);
     expect(find.text('1530'), findsOneWidget);
     expect(find.text('MY TEAM'), findsOneWidget);
     expect(find.text('teamA'), findsOneWidget);

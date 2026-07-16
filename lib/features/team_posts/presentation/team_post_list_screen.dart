@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../data/team_post.dart';
 import '../data/team_post_repository.dart';
 import 'team_post_detail_screen.dart';
@@ -70,6 +71,7 @@ class TeamPostListScreen extends ConsumerWidget {
           ),
         ],
       ),
+      bottomNavigationBar: const FootballPageNavigationBar(selectedIndex: 2),
       floatingActionButton: FloatingActionButton.extended(
         key: const ValueKey('team-post-create-button'),
         onPressed: () => _openCreate(context, ref),

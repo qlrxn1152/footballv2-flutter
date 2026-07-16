@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/brand_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/admin_badge.dart';
 
 class AppMenuDrawer extends StatelessWidget {
   const AppMenuDrawer({
     required this.username,
+    this.isAdmin = false,
     required this.onOpenProfile,
     required this.onOpenGoals,
     required this.onOpenTeamBoard,
@@ -17,6 +19,7 @@ class AppMenuDrawer extends StatelessWidget {
   });
 
   final String username;
+  final bool isAdmin;
   final VoidCallback onOpenProfile;
   final VoidCallback onOpenGoals;
   final VoidCallback onOpenTeamBoard;
@@ -129,6 +132,10 @@ class AppMenuDrawer extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                           ),
                         ),
+                        if (isAdmin) ...[
+                          const SizedBox(width: 8),
+                          const AdminBadge(),
+                        ],
                       ],
                     ),
                   ),
@@ -167,11 +174,12 @@ class AppMenuDrawer extends StatelessWidget {
                     label: '공지사항',
                     onTap: onOpenAnnouncements,
                   ),
-                  _MenuTile(
-                    icon: Icons.analytics_outlined,
-                    label: '일별 사용 통계',
-                    onTap: onOpenAnalytics,
-                  ),
+                  if (isAdmin)
+                    _MenuTile(
+                      icon: Icons.analytics_outlined,
+                      label: '일별 사용 통계',
+                      onTap: onOpenAnalytics,
+                    ),
                   _MenuTile(
                     icon: Icons.info_outline,
                     label: '앱 정보',

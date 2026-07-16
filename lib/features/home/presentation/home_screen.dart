@@ -158,6 +158,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final index = ref.watch(homeTabIndexProvider);
     final session = ref.watch(authControllerProvider).session;
+    final isAdmin = ref.watch(memberMeProvider).when(
+      data: (member) => member.isAdmin,
+      error: (_, _) => false,
+      loading: () => false,
+    );
     final pages = [
       DashboardScreen(onSelectTab: _selectTab),
       const MemberRankingScreen(),
@@ -246,6 +251,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       endDrawer: AppMenuDrawer(
         username: session?.username ?? '회원',
+        isAdmin: isAdmin,
         onOpenProfile: _openProfile,
         onOpenGoals: () {
           final memberId = session?.memberId;

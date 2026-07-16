@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../data/team_post.dart';
 import '../data/team_post_repository.dart';
 
@@ -81,6 +82,7 @@ class _TeamPostEditorScreenState extends ConsumerState<TeamPostEditorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(_editing ? '게시글 수정' : '게시글 작성')),
+      bottomNavigationBar: const FootballPageNavigationBar(selectedIndex: 2),
       body: Form(
         key: _formKey,
         child: ListView(

@@ -5,12 +5,27 @@ import 'package:footballv2_flutter/core/theme/app_theme.dart';
 import 'package:footballv2_flutter/features/announcements/data/announcement.dart';
 import 'package:footballv2_flutter/features/announcements/data/announcement_repository.dart';
 import 'package:footballv2_flutter/features/announcements/presentation/announcement_list_screen.dart';
+import 'package:footballv2_flutter/features/members/data/member_account.dart';
+import 'package:footballv2_flutter/features/members/data/member_repository.dart';
 
 void main() {
   testWidgets('공지사항 목록과 관리자 작성 버튼을 표시한다', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          memberMeProvider.overrideWith(
+            (ref) async => const MemberMe(
+              memberId: 1,
+              username: 'admin',
+              memberRating: 1500,
+              authority: 'ADMIN',
+              teamId: null,
+              teamName: null,
+              teamRole: null,
+              joinedAt: null,
+              createdAt: null,
+            ),
+          ),
           announcementsProvider.overrideWith(
             (ref) async => [
               AnnouncementSummary(

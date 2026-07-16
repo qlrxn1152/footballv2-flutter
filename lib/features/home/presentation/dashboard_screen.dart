@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/admin_badge.dart';
 import '../../announcements/data/announcement.dart';
 import '../../announcements/data/announcement_repository.dart';
 import '../../announcements/presentation/announcement_detail_screen.dart';
@@ -278,14 +279,22 @@ class _WelcomeCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 7),
-                  Text(
-                    '${item.username}님, 오늘도 뛰어볼까요?',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 23,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.7,
-                    ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        '${item.username}님, 오늘도 뛰어볼까요?',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 23,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.7,
+                        ),
+                      ),
+                      if (item.isAdmin) const AdminBadge(),
+                    ],
                   ),
                   const SizedBox(height: 14),
                   Wrap(

@@ -30,11 +30,6 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
   bool _joining = false;
   TeamMatchCreateResult? _registeredMatch;
 
-  void _selectHomeTab(int index) {
-    ref.read(homeTabIndexProvider.notifier).select(index);
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-
   Future<void> _refresh() async {
     ref.invalidate(teamDetailProvider(widget.teamId));
     ref.invalidate(teamMembersProvider(widget.teamId));
@@ -200,10 +195,7 @@ class _TeamDetailScreenState extends ConsumerState<TeamDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('팀 상세')),
-      bottomNavigationBar: FootballNavigationBar(
-        selectedIndex: 2,
-        onDestinationSelected: _selectHomeTab,
-      ),
+      bottomNavigationBar: const FootballPageNavigationBar(selectedIndex: 2),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: detail.when(

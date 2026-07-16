@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/admin_badge.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../members/data/member_account.dart';
 import '../../members/data/member_repository.dart';
@@ -341,14 +342,22 @@ class _ProfileCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            member.username,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 23,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
-                            ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 5,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                member.username,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 23,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              if (member.isAdmin) const AdminBadge(),
+                            ],
                           ),
                           Text(
                             '회원 번호 ${member.memberId} · 가입 ${_formatDate(member.createdAt)}',

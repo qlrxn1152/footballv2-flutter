@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/football_hero_card.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../../teams/presentation/team_detail_screen.dart';
 import '../data/member_detail.dart';
 import '../data/member_repository.dart';
@@ -18,6 +19,7 @@ class MemberDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('선수 상세')),
+      bottomNavigationBar: const FootballPageNavigationBar(selectedIndex: 1),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(memberDetailProvider(memberId));

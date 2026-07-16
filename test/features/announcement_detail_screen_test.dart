@@ -5,12 +5,27 @@ import 'package:footballv2_flutter/core/theme/app_theme.dart';
 import 'package:footballv2_flutter/features/announcements/data/announcement.dart';
 import 'package:footballv2_flutter/features/announcements/data/announcement_repository.dart';
 import 'package:footballv2_flutter/features/announcements/presentation/announcement_detail_screen.dart';
+import 'package:footballv2_flutter/features/members/data/member_account.dart';
+import 'package:footballv2_flutter/features/members/data/member_repository.dart';
 
 void main() {
   testWidgets('공지 상세에서 관리자 수정과 삭제 메뉴를 제공한다', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          memberMeProvider.overrideWith(
+            (ref) async => const MemberMe(
+              memberId: 1,
+              username: 'admin',
+              memberRating: 1500,
+              authority: 'ADMIN',
+              teamId: null,
+              teamName: null,
+              teamRole: null,
+              joinedAt: null,
+              createdAt: null,
+            ),
+          ),
           announcementDetailProvider(7).overrideWith(
             (ref) async => const AnnouncementDetail(
               id: 7,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../../members/data/member_repository.dart';
 import '../data/team_models.dart';
 import '../data/team_repository.dart';
@@ -66,6 +67,7 @@ class _TeamJoinRequestsScreenState
 
     return Scaffold(
       appBar: AppBar(title: Text('${widget.teamName} 가입 신청')),
+      bottomNavigationBar: const FootballPageNavigationBar(selectedIndex: 2),
       body: Column(
         children: [
           SingleChildScrollView(
