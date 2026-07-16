@@ -42,8 +42,6 @@ void main() {
     expect(find.text('팀 게시판'), findsOneWidget);
     expect(find.text('공지사항'), findsOneWidget);
     expect(find.text('일별 사용 통계'), findsOneWidget);
-    expect(find.text('앱 정보'), findsOneWidget);
-    expect(find.text('로그아웃'), findsOneWidget);
 
     await tester.tap(find.text('내 정보'));
     expect(profileOpened, isTrue);
@@ -51,5 +49,10 @@ void main() {
 
     await tester.tap(find.text('공지사항'));
     expect(announcementsOpened, isTrue);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(find.text('앱 정보'), findsOneWidget);
+    expect(find.text('로그아웃'), findsOneWidget);
   });
 }
