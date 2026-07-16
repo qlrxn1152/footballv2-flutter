@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../data/announcement.dart';
 import '../data/announcement_repository.dart';
 import 'announcement_create_screen.dart';
@@ -82,10 +83,12 @@ class AnnouncementDetailScreen extends ConsumerWidget {
     return detail.when(
       loading: () => const Scaffold(
         appBar: _AnnouncementDetailAppBar(),
+        bottomNavigationBar: FootballPageNavigationBar(),
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => Scaffold(
         appBar: const _AnnouncementDetailAppBar(),
+        bottomNavigationBar: const FootballPageNavigationBar(),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(28),
@@ -147,6 +150,7 @@ class AnnouncementDetailScreen extends ConsumerWidget {
             ),
           ],
         ),
+        bottomNavigationBar: const FootballPageNavigationBar(),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           children: [

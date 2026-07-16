@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../data/announcement.dart';
 import '../data/announcement_repository.dart';
 
@@ -87,6 +88,7 @@ class _AnnouncementCreateScreenState
       appBar: AppBar(
         title: Text(_editing ? '관리자 공지 수정' : '관리자 공지 작성'),
       ),
+      bottomNavigationBar: const FootballPageNavigationBar(),
       body: Form(
         key: _formKey,
         child: ListView(

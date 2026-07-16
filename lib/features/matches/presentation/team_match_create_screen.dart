@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/football_hero_card.dart';
 import '../../../core/widgets/status_banner.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../data/team_match.dart';
 import '../data/team_match_repository.dart';
 
@@ -141,6 +142,7 @@ class _TeamMatchCreateScreenState
 
     return Scaffold(
       appBar: AppBar(title: const Text('매치 등록')),
+      bottomNavigationBar: const FootballPageNavigationBar(selectedIndex: 3),
       body: result == null ? _buildRegistration() : _buildSuccess(result),
     );
   }

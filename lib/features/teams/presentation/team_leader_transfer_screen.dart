@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../../members/data/member_repository.dart';
 import '../data/team_models.dart';
 import '../data/team_repository.dart';
@@ -89,6 +90,7 @@ class _TeamLeaderTransferScreenState
 
     return Scaffold(
       appBar: AppBar(title: const Text('팀장 위임')),
+      bottomNavigationBar: const FootballPageNavigationBar(selectedIndex: 2),
       body: members.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => RefreshIndicator(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/status_banner.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../../members/data/member_repository.dart';
 import '../data/team_repository.dart';
 
@@ -190,6 +191,7 @@ class _TeamSettingsScreenState extends ConsumerState<TeamSettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('팀 설정')),
+      bottomNavigationBar: const FootballPageNavigationBar(selectedIndex: 2),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         child: Column(

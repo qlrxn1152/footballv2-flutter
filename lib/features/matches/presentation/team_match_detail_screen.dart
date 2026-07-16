@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../data/team_match.dart';
 import '../data/team_match_repository.dart';
 
@@ -29,6 +30,7 @@ class _TeamMatchDetailScreenState
 
     return Scaffold(
       appBar: AppBar(title: const Text('매치 상세')),
+      bottomNavigationBar: const FootballPageNavigationBar(selectedIndex: 3),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: detail.when(

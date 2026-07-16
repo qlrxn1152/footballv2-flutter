@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../home/presentation/home_navigation.dart';
 import '../data/daily_analytics_repository.dart';
 import '../data/daily_visit_summary.dart';
 
@@ -74,6 +75,7 @@ class _DailyAnalyticsScreenState extends ConsumerState<DailyAnalyticsScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const FootballPageNavigationBar(),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         children: [

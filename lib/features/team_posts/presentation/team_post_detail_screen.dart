@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../home/presentation/home_navigation.dart';
 import '../data/team_post.dart';
 import '../data/team_post_repository.dart';
 import 'team_post_comments_section.dart';
@@ -92,10 +93,12 @@ class TeamPostDetailScreen extends ConsumerWidget {
     return detail.when(
       loading: () => const Scaffold(
         appBar: _TeamPostDetailAppBar(),
+        bottomNavigationBar: FootballPageNavigationBar(selectedIndex: 2),
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => Scaffold(
         appBar: const _TeamPostDetailAppBar(),
+        bottomNavigationBar: const FootballPageNavigationBar(selectedIndex: 2),
         body: _ErrorView(
           message: error is ApiException ? error.message : error.toString(),
           onRetry: () => ref.invalidate(teamPostDetailProvider(_query)),
@@ -139,6 +142,9 @@ class TeamPostDetailScreen extends ConsumerWidget {
                   ],
                 ),
             ],
+          ),
+          bottomNavigationBar: const FootballPageNavigationBar(
+            selectedIndex: 2,
           ),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
