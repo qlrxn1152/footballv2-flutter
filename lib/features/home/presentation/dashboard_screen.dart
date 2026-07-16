@@ -356,7 +356,6 @@ class _WelcomePill extends StatelessWidget {
     required this.icon,
     required this.text,
     required this.onTap,
-    super.key,
   });
 
   final IconData icon;
