@@ -106,6 +106,7 @@ void main() {
     expect(find.text('test님, 오늘도 뛰어볼까요?'), findsOneWidget);
     expect(find.text('teamA'), findsWidgets);
     expect(find.text('빠른 메뉴'), findsOneWidget);
+    expect(find.text('teamA 게시판'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('dashboard-team-board-action')),
       findsOneWidget,
