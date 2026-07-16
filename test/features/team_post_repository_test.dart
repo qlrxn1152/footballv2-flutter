@@ -103,6 +103,62 @@ void main() {
     expect(requests[1].path, '/api/teams/3/posts/7');
     expect(updated.title, '수정 글');
   });
+
+  test('팀 게시글 댓글 목록을 조회한다', () async {
+    final apiClient = ApiClient(_EmptySessionStore());
+    RequestOptions? request;
+    apiClient.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          request = options;
+          handler.resolve(
+            Response<Object?>(
+              requestOptions: options,
+              statusCode: 200,
+              data: [
+                _commentJson(2, '2026-07-16T12:10:00'),
+                _commentJson(1, '2026-07-16T12:00:00'),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    final comments = await TeamPostRepository(apiClient).fetchComments(3, 7);
+
+    expect(request?.method, 'GET');
+    expect(request?.path, '/api/teams/3/posts/7/comments');
+    expect(comments.map((comment) => comment.commentId), [1, 2]);
+  });
+
+  test('팀 게시글 댓글 작성 요청을 전송한다', () async {
+    final apiClient = ApiClient(_EmptySessionStore());
+    RequestOptions? request;
+    apiClient.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          request = options;
+          handler.resolve(
+            Response<Object?>(
+              requestOptions: options,
+              statusCode: 201,
+              data: _commentJson(3, '2026-07-16T12:20:00'),
+            ),
+          );
+        },
+      ),
+    );
+
+    final comment = await TeamPostRepository(
+      apiClient,
+    ).createComment(3, 7, '참석합니다.');
+
+    expect(request?.method, 'POST');
+    expect(request?.path, '/api/teams/3/posts/7/comments');
+    expect(request?.data, {'content': '참석합니다.'});
+    expect(comment.commentId, 3);
+  });
 }
 
 Map<String, Object?> _summaryJson(int id, String createdAt) => {
@@ -126,6 +182,16 @@ Map<String, Object?> _detailJson({
   'authorUsername': 'test',
   'createdAt': '2026-07-16T12:00:00',
   'updatedAt': '2026-07-16T12:00:00',
+};
+
+Map<String, Object?> _commentJson(int id, String createdAt) => {
+  'commentId': id,
+  'postId': 7,
+  'authorMemberId': 2,
+  'authorUsername': 'test',
+  'content': '참석합니다.',
+  'createdAt': createdAt,
+  'updatedAt': createdAt,
 };
 
 class _EmptySessionStore implements SessionStore {
