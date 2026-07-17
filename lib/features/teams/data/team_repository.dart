@@ -67,21 +67,27 @@ class TeamRepository {
   }
 
   Future<int> createTeam(String teamName) {
-    return runApi(() async {
-      final response = await _apiClient.dio.post<Object?>(
-        '/api/teams',
-        data: {'teamName': teamName},
-      );
-      return (jsonMap(response.data)['teamId'] as num).toInt();
-    });
+    return runApi(
+      () async {
+        final response = await _apiClient.dio.post<Object?>(
+          '/api/teams',
+          data: {'teamName': teamName},
+        );
+        return (jsonMap(response.data)['teamId'] as num).toInt();
+      },
+      importantAction: ImportantApiAction.teamCreate,
+    );
   }
 
   Future<void> requestJoin(int teamId) {
-    return runApi(() async {
-      await _apiClient.dio.post<Object?>(
-        '/api/teams/$teamId/join-requests',
-      );
-    });
+    return runApi(
+      () async {
+        await _apiClient.dio.post<Object?>(
+          '/api/teams/$teamId/join-requests',
+        );
+      },
+      importantAction: ImportantApiAction.teamJoinRequest,
+    );
   }
 
   Future<List<TeamJoinRequest>> fetchJoinRequests({

@@ -14,13 +14,16 @@ class TeamMatchRepository {
     required int teamId,
     required DateTime playedAt,
   }) {
-    return runApi(() async {
-      final response = await _apiClient.dio.post<Object?>(
-        '/api/teams/$teamId/matches',
-        data: {'playedAt': playedAt.toIso8601String()},
-      );
-      return TeamMatchCreateResult.fromJson(jsonMap(response.data));
-    });
+    return runApi(
+      () async {
+        final response = await _apiClient.dio.post<Object?>(
+          '/api/teams/$teamId/matches',
+          data: {'playedAt': playedAt.toIso8601String()},
+        );
+        return TeamMatchCreateResult.fromJson(jsonMap(response.data));
+      },
+      importantAction: ImportantApiAction.matchCreate,
+    );
   }
 
   Future<TeamMatchDetail> fetchMatchDetail(int teamMatchId) {
@@ -63,17 +66,22 @@ class TeamMatchRepository {
     required int awayScore,
     required List<TeamMatchGoalInput> goals,
   }) {
-    return runApi(() async {
-      final response = await _apiClient.dio.post<Object?>(
-        '/api/team-matches/$teamMatchId/result',
-        data: {
-          'homeScore': homeScore,
-          'awayScore': awayScore,
-          'goals': goals.map((goal) => goal.toJson()).toList(growable: false),
-        },
-      );
-      return TeamMatchResult.fromJson(jsonMap(response.data));
-    });
+    return runApi(
+      () async {
+        final response = await _apiClient.dio.post<Object?>(
+          '/api/team-matches/$teamMatchId/result',
+          data: {
+            'homeScore': homeScore,
+            'awayScore': awayScore,
+            'goals': goals
+                .map((goal) => goal.toJson())
+                .toList(growable: false),
+          },
+        );
+        return TeamMatchResult.fromJson(jsonMap(response.data));
+      },
+      importantAction: ImportantApiAction.matchResultRegister,
+    );
   }
 
   Future<List<TeamMatchHistory>> fetchTeamMatchHistory({
