@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 class ApiException implements Exception {
   const ApiException(this.message, {this.code, this.statusCode});
@@ -39,8 +40,76 @@ class ApiException implements Exception {
 Future<T> runApi<T>(Future<T> Function() request) async {
   try {
     return await request();
-  } on DioException catch (error) {
+  } on DioException catch (error, stackTrace) {
+    await _reportApiFailure(error, stackTrace);
     throw ApiException.fromDio(error);
+  }
+}
+
+bool shouldReportApiFailure(DioException error) {
+  final statusCode = error.response?.statusCode;
+  if (statusCode != null) return statusCode >= 500;
+
+  return switch (error.type) {
+    DioExceptionType.connectionTimeout ||
+    DioExceptionType.sendTimeout ||
+    DioExceptionType.receiveTimeout ||
+    DioExceptionType.connectionError => true,
+    _ => false,
+  };
+}
+
+class ApiMonitoringException implements Exception {
+  const ApiMonitoringException({
+    required this.method,
+    required this.path,
+    required this.statusCode,
+    required this.failureType,
+  });
+
+  final String method;
+  final String path;
+  final int? statusCode;
+  final String failureType;
+
+  @override
+  String toString() {
+    final status = statusCode == null ? 'no-status' : 'HTTP $statusCode';
+    return 'API failure: $method $path ($status, $failureType)';
+  }
+}
+
+Future<void> _reportApiFailure(
+  DioException error,
+  StackTrace stackTrace,
+) async {
+  if (!Sentry.isEnabled || !shouldReportApiFailure(error)) return;
+
+  final request = error.requestOptions;
+  final statusCode = error.response?.statusCode;
+  final path = request.uri.path;
+  final monitoringError = ApiMonitoringException(
+    method: request.method,
+    path: path,
+    statusCode: statusCode,
+    failureType: error.type.name,
+  );
+
+  try {
+    await Sentry.captureException(
+      monitoringError,
+      stackTrace: stackTrace,
+      withScope: (scope) async {
+        await scope.setTag('http.request_method', request.method);
+        await scope.setTag('http.route', path);
+        await scope.setTag(
+          'http.status_code',
+          statusCode?.toString() ?? 'none',
+        );
+      },
+    );
+  } catch (_) {
+    // Monitoring failures must never replace the original API error.
   }
 }
 

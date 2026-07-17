@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/session/auth_session.dart';
@@ -52,6 +53,7 @@ class AuthController extends Notifier<AuthState> {
   Future<void> _restore() async {
     try {
       final session = await _repository.restoreSession();
+      await _setMonitoringUser(session);
       state = session == null
           ? const AuthState.unauthenticated()
           : AuthState.authenticated(session);
@@ -71,6 +73,7 @@ class AuthController extends Notifier<AuthState> {
         username: username,
         password: password,
       );
+      await _setMonitoringUser(session);
       _invalidateSessionData();
       state = AuthState.authenticated(session);
       return true;
@@ -91,6 +94,7 @@ class AuthController extends Notifier<AuthState> {
         username: username,
         password: password,
       );
+      await _setMonitoringUser(session);
       _invalidateSessionData();
       state = AuthState.authenticated(session);
       return true;
@@ -102,6 +106,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> logout() async {
     await _repository.logout();
+    await _setMonitoringUser(null);
     _invalidateSessionData();
     state = const AuthState.unauthenticated();
   }
@@ -124,6 +129,17 @@ class AuthController extends Notifier<AuthState> {
     if (state.status == AuthStatus.unauthenticated) {
       state = const AuthState.unauthenticated();
     }
+  }
+
+  Future<void> _setMonitoringUser(AuthSession? session) async {
+    if (!Sentry.isEnabled) return;
+    await Sentry.configureScope(
+      (scope) => scope.setUser(
+        session == null
+            ? null
+            : SentryUser(id: 'member-${session.memberId}'),
+      ),
+    );
   }
 
   String _message(Object error) {
