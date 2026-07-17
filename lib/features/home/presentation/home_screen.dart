@@ -12,6 +12,8 @@ import '../../matches/presentation/match_hub_screen.dart';
 import '../../members/data/member_repository.dart';
 import '../../members/presentation/member_detail_screen.dart';
 import '../../members/presentation/member_ranking_screen.dart';
+import '../../notifications/data/member_notification_repository.dart';
+import '../../notifications/presentation/member_notification_screen.dart';
 import '../../teams/data/team_repository.dart';
 import '../../teams/presentation/team_list_screen.dart';
 import '../../team_posts/presentation/team_post_list_screen.dart';
@@ -31,6 +33,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   static const _titles = ['홈', '선수 랭킹', '팀', '매치', '내 정보'];
 
   void _refreshTab(int index) {
+    ref.invalidate(unreadNotificationCountProvider);
     switch (index) {
       case 0:
         ref.invalidate(memberMeProvider);
@@ -95,6 +98,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       applicationIcon: const Icon(Icons.sports_soccer, size: 44),
       children: const [Text(BrandConfig.slogan)],
     );
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const MemberNotificationScreen()),
+    );
+    if (!mounted) return;
+    ref.invalidate(unreadNotificationCountProvider);
   }
 
   Future<void> _openTeamBoard() async {
@@ -220,6 +231,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
         actions: [
+          _NotificationButton(onPressed: _openNotifications),
           IconButton(
             onPressed: () => _refreshTab(index),
             tooltip: '새로고침',
@@ -266,6 +278,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onOpenAnalytics: () => _openPage(const DailyAnalyticsScreen()),
         onShowAppInfo: _showAppInfo,
         onLogout: _confirmLogout,
+      ),
+    );
+  }
+}
+
+class _NotificationButton extends ConsumerWidget {
+  const _NotificationButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(unreadNotificationCountProvider).value ?? 0;
+
+    return IconButton(
+      key: const ValueKey('notification-button'),
+      onPressed: onPressed,
+      tooltip: count > 0 ? '읽지 않은 알림 $count개' : '알림',
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Icon(Icons.notifications_outlined),
+          if (count > 0)
+            Positioned(
+              right: -9,
+              top: -8,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE03131),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.navy, width: 1.5),
+                ),
+                child: Text(
+                  count > 99 ? '99+' : '$count',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
