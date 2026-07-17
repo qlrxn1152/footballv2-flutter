@@ -5,6 +5,7 @@ import '../../../core/session/auth_session.dart';
 import '../../home/presentation/home_navigation.dart';
 import '../../matches/data/team_match_repository.dart';
 import '../../members/data/member_repository.dart';
+import '../../notifications/data/member_notification_repository.dart';
 import '../../teams/data/team_repository.dart';
 import '../data/auth_repository.dart';
 
@@ -115,6 +116,8 @@ class AuthController extends Notifier<AuthState> {
       ref.invalidate(teamMatchesProvider(status));
     }
     ref.invalidate(allTeamMatchesProvider);
+    ref.invalidate(memberNotificationsProvider);
+    ref.invalidate(unreadNotificationCountProvider);
   }
 
   void clearError() {
