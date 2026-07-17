@@ -53,6 +53,7 @@ jobs:
           flutter build web --release
           --base-href /footballv2-flutter/
           --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+          --dart-define=SENTRY_ENVIRONMENT=production
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
