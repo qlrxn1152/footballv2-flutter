@@ -28,15 +28,17 @@ class PushNotificationService {
     return PushPermissionStatus.authorized;
   }
 
-  Future<void> syncIfAuthorized() async {
+  Future<bool> syncIfAuthorized() async {
     if (await _client.permissionStatus() !=
         PushPermissionStatus.authorized) {
-      return;
+      return false;
     }
     final token = await _client.getToken();
-    if (token != null) {
-      await _register(token);
+    if (token == null) {
+      return false;
     }
+    await _register(token);
+    return true;
   }
 
   Future<void> unregister() async {

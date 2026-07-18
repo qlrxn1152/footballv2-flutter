@@ -21,9 +21,21 @@ void main() {
     final repository = _FakeDeviceTokenRepository();
     final service = PushNotificationService(client, repository);
 
-    await service.syncIfAuthorized();
+    final registered = await service.syncIfAuthorized();
 
+    expect(registered, isTrue);
     expect(repository.registeredToken, 'fcm-token');
+  });
+
+  test('승인된 권한이 있어도 FCM 토큰이 없으면 등록되지 않은 상태로 판단한다', () async {
+    final client = _FakePushMessagingClient(token: null);
+    final repository = _FakeDeviceTokenRepository();
+    final service = PushNotificationService(client, repository);
+
+    final registered = await service.syncIfAuthorized();
+
+    expect(registered, isFalse);
+    expect(repository.registeredToken, isNull);
   });
 
   test('로그아웃할 때 서버 등록과 브라우저 FCM 토큰을 해제한다', () async {
@@ -40,6 +52,9 @@ void main() {
 }
 
 class _FakePushMessagingClient implements PushMessagingClient {
+  _FakePushMessagingClient({this.token = 'fcm-token'});
+
+  final String? token;
   bool deleted = false;
 
   @override
@@ -49,14 +64,14 @@ class _FakePushMessagingClient implements PushMessagingClient {
   Future<void> deleteToken() async => deleted = true;
 
   @override
-  Future<String?> getToken() async => 'fcm-token';
+  Future<String?> getToken() async => token;
 
   @override
   Future<PushPermissionStatus> permissionStatus() async =>
       PushPermissionStatus.authorized;
 
   @override
-  Future<String?> requestPermissionAndGetToken() async => 'fcm-token';
+  Future<String?> requestPermissionAndGetToken() async => token;
 }
 
 class _FakeDeviceTokenRepository

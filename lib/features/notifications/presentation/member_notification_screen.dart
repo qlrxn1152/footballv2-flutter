@@ -22,6 +22,7 @@ class _MemberNotificationScreenState
     extends ConsumerState<MemberNotificationScreen> {
   final Set<int> _processingIds = {};
   PushPermissionStatus? _pushStatus;
+  bool _pushRegistered = false;
   bool _pushBusy = false;
 
   @override
@@ -31,10 +32,22 @@ class _MemberNotificationScreenState
   }
 
   Future<void> _loadPushStatus() async {
-    final status = await ref
-        .read(pushNotificationServiceProvider)
-        .permissionStatus();
-    if (mounted) setState(() => _pushStatus = status);
+    final service = ref.read(pushNotificationServiceProvider);
+    final status = await service.permissionStatus();
+    var registered = false;
+    if (status == PushPermissionStatus.authorized) {
+      try {
+        registered = await service.syncIfAuthorized();
+      } catch (_) {
+        // 브라우저 권한과 서버 토큰 등록 상태를 분리해 다시 연결할 수 있게 한다.
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _pushStatus = status;
+        _pushRegistered = registered;
+      });
+    }
   }
 
   Future<void> _enablePushNotifications() async {
@@ -43,7 +56,10 @@ class _MemberNotificationScreenState
     try {
       final status = await ref.read(pushNotificationServiceProvider).enable();
       if (!mounted) return;
-      setState(() => _pushStatus = status);
+      setState(() {
+        _pushStatus = status;
+        _pushRegistered = status == PushPermissionStatus.authorized;
+      });
       final message = switch (status) {
         PushPermissionStatus.authorized => '푸시 알림이 켜졌습니다.',
         PushPermissionStatus.denied => '브라우저 설정에서 알림을 허용해주세요.',
@@ -146,6 +162,7 @@ class _MemberNotificationScreenState
                 const SizedBox(height: 12),
                 _PushPermissionCard(
                   status: _pushStatus!,
+                  registered: _pushRegistered,
                   isBusy: _pushBusy,
                   onEnable: _enablePushNotifications,
                 ),
@@ -187,27 +204,31 @@ class _MemberNotificationScreenState
 class _PushPermissionCard extends StatelessWidget {
   const _PushPermissionCard({
     required this.status,
+    required this.registered,
     required this.isBusy,
     required this.onEnable,
   });
 
   final PushPermissionStatus status;
+  final bool registered;
   final bool isBusy;
   final VoidCallback onEnable;
 
   @override
   Widget build(BuildContext context) {
-    final authorized = status == PushPermissionStatus.authorized;
+    final permissionAuthorized =
+        status == PushPermissionStatus.authorized;
+    final enabled = permissionAuthorized && registered;
     final denied = status == PushPermissionStatus.denied;
     final configured = status != PushPermissionStatus.notConfigured;
     return Card(
-      color: authorized ? const Color(0xFFF2FBE0) : Colors.white,
+      color: enabled ? const Color(0xFFF2FBE0) : Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(15),
         child: Row(
           children: [
             Icon(
-              authorized
+              enabled
                   ? Icons.notifications_active_outlined
                   : Icons.notifications_none_outlined,
               color: AppTheme.navy,
@@ -218,13 +239,19 @@ class _PushPermissionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    authorized ? '푸시 알림 켜짐' : '실시간 푸시 알림',
+                    enabled
+                        ? '푸시 알림 켜짐'
+                        : permissionAuthorized
+                        ? '푸시 알림 재연결 필요'
+                        : '실시간 푸시 알림',
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    authorized
+                    enabled
                         ? '앱을 닫아도 매치 성사 소식을 알려드려요.'
+                        : permissionAuthorized
+                        ? '브라우저 권한은 있지만 서버에 기기가 등록되지 않았어요.'
                         : denied
                         ? '브라우저 설정에서 알림 권한을 허용해주세요.'
                         : configured
@@ -238,7 +265,7 @@ class _PushPermissionCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (!authorized && !denied && configured)
+            if (!enabled && !denied && configured)
               FilledButton(
                 onPressed: isBusy ? null : onEnable,
                 child: isBusy
@@ -246,7 +273,7 @@ class _PushPermissionCard extends StatelessWidget {
                         dimension: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('켜기'),
+                    : Text(permissionAuthorized ? '재연결' : '켜기'),
               ),
           ],
         ),
