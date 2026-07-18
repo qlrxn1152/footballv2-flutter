@@ -1,0 +1,89 @@
+(() => {
+  const firebaseConfig = {
+    apiKey: '__FIREBASE_API_KEY__',
+    authDomain: '__FIREBASE_AUTH_DOMAIN__',
+    projectId: '__FIREBASE_PROJECT_ID__',
+    storageBucket: '__FIREBASE_STORAGE_BUCKET__',
+    messagingSenderId: '__FIREBASE_MESSAGING_SENDER_ID__',
+    appId: '__FIREBASE_APP_ID__',
+  };
+  const vapidKey = '__FIREBASE_VAPID_KEY__';
+
+  let messaging;
+  let registration;
+
+  async function initialize() {
+    if (messaging && registration) return { messaging, registration };
+    if (
+      !('Notification' in window) ||
+      !('serviceWorker' in navigator) ||
+      typeof firebase === 'undefined' ||
+      !(await firebase.messaging.isSupported())
+    ) {
+      return null;
+    }
+
+    if (firebase.apps.length === 0) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    messaging = firebase.messaging();
+    registration = await navigator.serviceWorker.register(
+      new URL('firebase-messaging-sw.js', document.baseURI),
+      {
+        scope: new URL(
+          'firebase-cloud-messaging-push-scope/',
+          document.baseURI,
+        ).pathname,
+      },
+    );
+
+    messaging.onMessage((payload) => {
+      const notification = payload.notification || {};
+      registration.showNotification(
+        notification.title || '풋볼로그 알림',
+        {
+          body: notification.body || '',
+          icon: new URL('icons/Icon-192.png', document.baseURI).toString(),
+          badge: new URL('icons/Icon-192.png', document.baseURI).toString(),
+          data: payload.data || {},
+        },
+      );
+    });
+    return { messaging, registration };
+  }
+
+  function permissionStatus() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      return 'unsupported';
+    }
+    if (Notification.permission === 'granted') return 'authorized';
+    if (Notification.permission === 'denied') return 'denied';
+    return 'not-determined';
+  }
+
+  async function tokenForCurrentPermission() {
+    if (Notification.permission !== 'granted') return null;
+    const ready = await initialize();
+    if (!ready) return null;
+    return ready.messaging.getToken({
+      vapidKey,
+      serviceWorkerRegistration: ready.registration,
+    });
+  }
+
+  window.footballV2Push = {
+    permissionStatus,
+    async requestToken() {
+      if (permissionStatus() === 'unsupported') return null;
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return null;
+      return tokenForCurrentPermission();
+    },
+    currentToken: tokenForCurrentPermission,
+    async deleteToken() {
+      const ready = await initialize();
+      if (!ready) return false;
+      return ready.messaging.deleteToken();
+    },
+  };
+})();

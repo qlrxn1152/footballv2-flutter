@@ -1,0 +1,49 @@
+const APP_URL = new URL('./', self.location.href).toString();
+
+self.addEventListener('notificationclick', (event) => {
+  event.stopImmediatePropagation();
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(
+      async (windowClients) => {
+        const existing = windowClients.find((client) =>
+          client.url.startsWith(APP_URL),
+        );
+        if (existing) {
+          await existing.focus();
+          return;
+        }
+        await clients.openWindow(APP_URL);
+      },
+    ),
+  );
+});
+
+importScripts(
+  'https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js',
+);
+importScripts(
+  'https://www.gstatic.com/firebasejs/12.16.0/firebase-messaging-compat.js',
+);
+
+firebase.initializeApp({
+  apiKey: '__FIREBASE_API_KEY__',
+  authDomain: '__FIREBASE_AUTH_DOMAIN__',
+  projectId: '__FIREBASE_PROJECT_ID__',
+  storageBucket: '__FIREBASE_STORAGE_BUCKET__',
+  messagingSenderId: '__FIREBASE_MESSAGING_SENDER_ID__',
+  appId: '__FIREBASE_APP_ID__',
+});
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+  // notification 페이로드는 FCM이 자동으로 표시한다. data-only 메시지만 직접 표시한다.
+  if (payload.notification) return;
+  return self.registration.showNotification('풋볼로그 알림', {
+    body: '',
+    icon: new URL('icons/Icon-192.png', APP_URL).toString(),
+    badge: new URL('icons/Icon-192.png', APP_URL).toString(),
+    data: payload.data || {},
+  });
+});
