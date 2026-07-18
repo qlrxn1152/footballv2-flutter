@@ -15,12 +15,15 @@ void main() {
       'awayScore': null,
       'winnerTeamId': null,
       'winnerTeamName': null,
+      'stadiumName': '월드컵 풋살장',
+      'stadiumAddress': '서울시 마포구 월드컵로 1',
     });
 
     expect(match.isPending, isTrue);
     expect(match.awayTeamId, isNull);
     expect(match.hasResult, isFalse);
     expect(match.includesTeam(3), isTrue);
+    expect(match.stadiumName, '월드컵 풋살장');
   });
 
   test('COMPLETED 팀 매치 기록의 점수와 승자를 변환한다', () {

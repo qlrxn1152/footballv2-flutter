@@ -11,6 +11,8 @@ void main() {
       'status': 'PENDING',
       'playedAt': '2026-07-20T18:30:00',
       'createdAt': '2026-07-12T10:00:00',
+      'stadiumName': '월드컵 풋살장',
+      'stadiumAddress': '서울시 마포구 월드컵로 1',
     });
 
     expect(result.teamMatchId, 12);
@@ -19,6 +21,8 @@ void main() {
     expect(result.homeTeamRating, 1500);
     expect(result.isPending, isTrue);
     expect(result.playedAt, DateTime(2026, 7, 20, 18, 30));
+    expect(result.stadiumName, '월드컵 풋살장');
+    expect(result.stadiumAddress, '서울시 마포구 월드컵로 1');
   });
 
   test('PENDING 매치 목록 응답을 변환한다', () {
@@ -33,6 +37,8 @@ void main() {
       'status': 'PENDING',
       'createdAt': '2026-07-11T14:30:00',
       'playedAt': '2026-07-20T18:30:00',
+      'stadiumName': '월드컵 풋살장',
+      'stadiumAddress': '서울시 마포구 월드컵로 1',
     });
 
     expect(match.teamMatchId, 21);
@@ -42,6 +48,7 @@ void main() {
     expect(match.isPending, isTrue);
     expect(match.createdAt, DateTime(2026, 7, 11, 14, 30));
     expect(match.playedAt, DateTime(2026, 7, 20, 18, 30));
+    expect(match.stadiumName, '월드컵 풋살장');
   });
 
   test('완료된 매치 상세 응답을 변환한다', () {
@@ -60,6 +67,8 @@ void main() {
       'awayScore': 1,
       'winnerTeamId': 3,
       'winnerTeamName': 'teamA',
+      'stadiumName': '월드컵 풋살장',
+      'stadiumAddress': '서울시 마포구 월드컵로 1',
     });
 
     expect(detail.teamMatchId, 23);
@@ -67,6 +76,7 @@ void main() {
     expect(detail.hasResult, isTrue);
     expect(detail.isCompleted, isTrue);
     expect(detail.winnerTeamName, 'teamA');
+    expect(detail.stadiumAddress, '서울시 마포구 월드컵로 1');
   });
 
   test('MATCHED 매치 목록 응답을 변환한다', () {

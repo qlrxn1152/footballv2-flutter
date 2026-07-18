@@ -7,6 +7,8 @@ class TeamMatchCreateResult {
     required this.status,
     required this.playedAt,
     required this.createdAt,
+    this.stadiumName,
+    this.stadiumAddress,
   });
 
   final int teamMatchId;
@@ -16,6 +18,8 @@ class TeamMatchCreateResult {
   final String status;
   final DateTime? playedAt;
   final DateTime? createdAt;
+  final String? stadiumName;
+  final String? stadiumAddress;
 
   bool get isPending => status == 'PENDING';
 
@@ -28,6 +32,8 @@ class TeamMatchCreateResult {
       status: json['status'] as String,
       playedAt: DateTime.tryParse(json['playedAt']?.toString() ?? ''),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      stadiumName: json['stadiumName'] as String?,
+      stadiumAddress: json['stadiumAddress'] as String?,
     );
   }
 }
@@ -48,6 +54,8 @@ class TeamMatchSummary {
     required this.status,
     required this.createdAt,
     required this.playedAt,
+    this.stadiumName,
+    this.stadiumAddress,
   });
 
   final int teamMatchId;
@@ -64,6 +72,8 @@ class TeamMatchSummary {
   final String status;
   final DateTime? createdAt;
   final DateTime? playedAt;
+  final String? stadiumName;
+  final String? stadiumAddress;
 
   bool get isPending => status == 'PENDING';
   bool get isMatched => status == 'MATCHED';
@@ -90,6 +100,8 @@ class TeamMatchSummary {
       status: json['status'] as String,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       playedAt: DateTime.tryParse(json['playedAt']?.toString() ?? ''),
+      stadiumName: json['stadiumName'] as String?,
+      stadiumAddress: json['stadiumAddress'] as String?,
     );
   }
 }
@@ -110,6 +122,8 @@ class TeamMatchDetail {
     required this.awayScore,
     required this.winnerTeamId,
     required this.winnerTeamName,
+    this.stadiumName,
+    this.stadiumAddress,
   });
 
   final int teamMatchId;
@@ -126,6 +140,8 @@ class TeamMatchDetail {
   final int? awayScore;
   final int? winnerTeamId;
   final String? winnerTeamName;
+  final String? stadiumName;
+  final String? stadiumAddress;
 
   bool get isPending => status == 'PENDING';
   bool get isMatched => status == 'MATCHED';
@@ -149,6 +165,8 @@ class TeamMatchDetail {
       awayScore: (json['awayScore'] as num?)?.toInt(),
       winnerTeamId: (json['winnerTeamId'] as num?)?.toInt(),
       winnerTeamName: json['winnerTeamName'] as String?,
+      stadiumName: json['stadiumName'] as String?,
+      stadiumAddress: json['stadiumAddress'] as String?,
     );
   }
 }

@@ -12,6 +12,8 @@ class TeamMatchHistory {
     required this.awayScore,
     required this.winnerTeamId,
     required this.winnerTeamName,
+    this.stadiumName,
+    this.stadiumAddress,
   });
 
   final int teamMatchId;
@@ -26,6 +28,8 @@ class TeamMatchHistory {
   final int? awayScore;
   final int? winnerTeamId;
   final String? winnerTeamName;
+  final String? stadiumName;
+  final String? stadiumAddress;
 
   bool get isPending => status == 'PENDING';
   bool get isMatched => status == 'MATCHED';
@@ -50,6 +54,8 @@ class TeamMatchHistory {
       awayScore: (json['awayScore'] as num?)?.toInt(),
       winnerTeamId: (json['winnerTeamId'] as num?)?.toInt(),
       winnerTeamName: json['winnerTeamName'] as String?,
+      stadiumName: json['stadiumName'] as String?,
+      stadiumAddress: json['stadiumAddress'] as String?,
     );
   }
 }
