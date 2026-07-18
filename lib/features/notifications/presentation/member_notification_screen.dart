@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/push/push_messaging_client.dart';
@@ -69,14 +70,21 @@ class _MemberNotificationScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      if (Sentry.isEnabled) {
+        await Sentry.captureException(error, stackTrace: stackTrace);
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             error is ApiException
                 ? error.message
-                : '푸시 알림을 설정하지 못했습니다.',
+                : error is PushMessagingException
+                ? '푸시 토큰 발급 실패: ${error.message}'
+                : error is StateError
+                ? error.message
+                : '푸시 알림을 설정하지 못했습니다: $error',
           ),
         ),
       );
