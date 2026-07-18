@@ -17,6 +17,9 @@ external JSPromise<JSString?> _currentToken();
 @JS('footballV2Push.deleteToken')
 external JSPromise<JSAny?> _deleteToken();
 
+@JS('footballV2Push.lastError')
+external JSString _lastError();
+
 PushMessagingClient createPlatformPushMessagingClient() =>
     const WebPushMessagingClient();
 
@@ -43,20 +46,16 @@ class WebPushMessagingClient implements PushMessagingClient {
 
   @override
   Future<String?> requestPermissionAndGetToken() async {
-    try {
-      return (await _requestToken().toDart)?.toDart;
-    } catch (_) {
-      return null;
-    }
+    final token = (await _requestToken().toDart)?.toDart;
+    _throwLastErrorWhenMissing(token);
+    return token;
   }
 
   @override
   Future<String?> getToken() async {
-    try {
-      return (await _currentToken().toDart)?.toDart;
-    } catch (_) {
-      return null;
-    }
+    final token = (await _currentToken().toDart)?.toDart;
+    _throwLastErrorWhenMissing(token);
+    return token;
   }
 
   @override
@@ -65,6 +64,14 @@ class WebPushMessagingClient implements PushMessagingClient {
       await _deleteToken().toDart;
     } catch (_) {
       // 브라우저가 토큰 삭제를 지원하지 않아도 서버 등록 해제는 계속한다.
+    }
+  }
+
+  void _throwLastErrorWhenMissing(String? token) {
+    if (token != null) return;
+    final detail = _lastError().toDart.trim();
+    if (detail.isNotEmpty) {
+      throw PushMessagingException(detail);
     }
   }
 }

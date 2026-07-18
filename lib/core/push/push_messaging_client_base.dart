@@ -6,6 +6,15 @@ enum PushPermissionStatus {
   authorized,
 }
 
+class PushMessagingException implements Exception {
+  const PushMessagingException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 abstract interface class PushMessagingClient {
   String get platform;
 

@@ -38,6 +38,25 @@ void main() {
     expect(repository.registeredToken, isNull);
   });
 
+  test('FCM 토큰 발급 오류를 숨기지 않고 전달한다', () async {
+    final client = _FakePushMessagingClient(
+      error: const PushMessagingException('messaging/token-subscribe-failed'),
+    );
+    final repository = _FakeDeviceTokenRepository();
+    final service = PushNotificationService(client, repository);
+
+    expect(
+      service.enable,
+      throwsA(
+        isA<PushMessagingException>().having(
+          (error) => error.message,
+          'message',
+          contains('token-subscribe-failed'),
+        ),
+      ),
+    );
+  });
+
   test('로그아웃할 때 서버 등록과 브라우저 FCM 토큰을 해제한다', () async {
     final client = _FakePushMessagingClient();
     final repository = _FakeDeviceTokenRepository();
@@ -52,9 +71,10 @@ void main() {
 }
 
 class _FakePushMessagingClient implements PushMessagingClient {
-  _FakePushMessagingClient({this.token = 'fcm-token'});
+  _FakePushMessagingClient({this.token = 'fcm-token', this.error});
 
   final String? token;
+  final Object? error;
   bool deleted = false;
 
   @override
@@ -71,7 +91,10 @@ class _FakePushMessagingClient implements PushMessagingClient {
       PushPermissionStatus.authorized;
 
   @override
-  Future<String?> requestPermissionAndGetToken() async => token;
+  Future<String?> requestPermissionAndGetToken() async {
+    if (error case final error?) throw error;
+    return token;
+  }
 }
 
 class _FakeDeviceTokenRepository
