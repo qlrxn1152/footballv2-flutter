@@ -27,10 +27,24 @@ class TeamMatchCreateScreen extends ConsumerStatefulWidget {
 
 class _TeamMatchCreateScreenState
     extends ConsumerState<TeamMatchCreateScreen> {
+  final _stadiumNameController = TextEditingController();
+  final _stadiumAddressController = TextEditingController();
   bool _submitting = false;
   String? _errorMessage;
   TeamMatchCreateResult? _result;
   DateTime? _playedAt;
+
+  bool get _canSubmit =>
+      _playedAt != null &&
+      _stadiumNameController.text.trim().isNotEmpty &&
+      _stadiumAddressController.text.trim().isNotEmpty;
+
+  @override
+  void dispose() {
+    _stadiumNameController.dispose();
+    _stadiumAddressController.dispose();
+    super.dispose();
+  }
 
   Future<void> _selectPlayedAt() async {
     final now = DateTime.now();
@@ -71,8 +85,14 @@ class _TeamMatchCreateScreenState
 
   Future<void> _createMatch() async {
     final playedAt = _playedAt;
+    final stadiumName = _stadiumNameController.text.trim();
+    final stadiumAddress = _stadiumAddressController.text.trim();
     if (playedAt == null) {
       setState(() => _errorMessage = '경기 날짜와 시간을 먼저 선택해주세요.');
+      return;
+    }
+    if (stadiumName.isEmpty || stadiumAddress.isEmpty) {
+      setState(() => _errorMessage = '경기장 이름과 주소를 모두 입력해주세요.');
       return;
     }
 
@@ -83,6 +103,8 @@ class _TeamMatchCreateScreenState
         content: Text(
           '${widget.teamName}을 홈 팀으로 매치를 등록할까요?\n\n'
           '경기 일시: ${_formatFullDateTime(playedAt)}\n'
+          '경기장: $stadiumName\n'
+          '주소: $stadiumAddress\n'
           '등록 후 상대 팀의 참가를 기다리는 PENDING 상태가 됩니다.',
         ),
         actions: [
@@ -106,7 +128,12 @@ class _TeamMatchCreateScreenState
     try {
       final result = await ref
           .read(teamMatchRepositoryProvider)
-          .createMatch(teamId: widget.teamId, playedAt: playedAt);
+          .createMatch(
+            teamId: widget.teamId,
+            playedAt: playedAt,
+            stadiumName: stadiumName,
+            stadiumAddress: stadiumAddress,
+          );
       if (!mounted) return;
       ref.invalidate(teamMatchesProvider('PENDING'));
       ref.invalidate(
@@ -185,10 +212,46 @@ class _TeamMatchCreateScreenState
             ),
           ),
           const SizedBox(height: 18),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 6),
+              child: Column(
+                children: [
+                  TextField(
+                    key: const ValueKey('stadium-name-field'),
+                    controller: _stadiumNameController,
+                    enabled: !_submitting,
+                    maxLength: 100,
+                    textInputAction: TextInputAction.next,
+                    onChanged: (_) => setState(() => _errorMessage = null),
+                    decoration: const InputDecoration(
+                      labelText: '경기장 이름',
+                      hintText: '예: 풋살파크 강남점',
+                      prefixIcon: Icon(Icons.stadium_outlined),
+                    ),
+                  ),
+                  TextField(
+                    key: const ValueKey('stadium-address-field'),
+                    controller: _stadiumAddressController,
+                    enabled: !_submitting,
+                    maxLength: 255,
+                    textInputAction: TextInputAction.done,
+                    onChanged: (_) => setState(() => _errorMessage = null),
+                    decoration: const InputDecoration(
+                      labelText: '경기장 주소',
+                      hintText: '예: 서울시 강남구 테헤란로 123',
+                      prefixIcon: Icon(Icons.location_on_outlined),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
           const _MatchFlowCard(),
           const SizedBox(height: 24),
           FilledButton.icon(
-            onPressed: _submitting || _playedAt == null ? null : _createMatch,
+            onPressed: _submitting || !_canSubmit ? null : _createMatch,
             icon: _submitting
                 ? const SizedBox.square(
                     dimension: 20,
@@ -247,6 +310,16 @@ class _TeamMatchCreateScreenState
                 _ResultRow(
                   label: '경기 일시',
                   value: _formatFullDateTime(result.playedAt),
+                ),
+                const Divider(height: 26),
+                _ResultRow(
+                  label: '경기장',
+                  value: result.stadiumName ?? '-',
+                ),
+                const Divider(height: 26),
+                _ResultRow(
+                  label: '주소',
+                  value: result.stadiumAddress ?? '-',
                 ),
                 const Divider(height: 26),
                 _ResultRow(label: '홈 팀', value: result.homeTeamName),
@@ -373,8 +446,14 @@ class _ResultRow extends StatelessWidget {
     return Row(
       children: [
         Text(label),
-        const Spacer(),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ),
       ],
     );
   }

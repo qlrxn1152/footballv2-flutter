@@ -23,6 +23,8 @@ void main() {
       'awayScore': 1,
       'winnerTeamId': 3,
       'winnerTeamName': 'teamA',
+      'stadiumName': '월드컵 풋살장',
+      'stadiumAddress': '서울시 마포구 월드컵로 1',
     });
 
     await tester.pumpWidget(
@@ -43,6 +45,8 @@ void main() {
     expect(find.text('2026.07.20 18:30'), findsNWidgets(2));
     expect(find.text('3 : 1'), findsOneWidget);
     expect(find.text('teamA 승리'), findsOneWidget);
+    expect(find.text('월드컵 풋살장'), findsOneWidget);
+    expect(find.text('서울시 마포구 월드컵로 1'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

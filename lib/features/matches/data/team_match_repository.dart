@@ -13,12 +13,18 @@ class TeamMatchRepository {
   Future<TeamMatchCreateResult> createMatch({
     required int teamId,
     required DateTime playedAt,
+    required String stadiumName,
+    required String stadiumAddress,
   }) {
     return runApi(
       () async {
         final response = await _apiClient.dio.post<Object?>(
           '/api/teams/$teamId/matches',
-          data: {'playedAt': playedAt.toIso8601String()},
+          data: {
+            'playedAt': playedAt.toIso8601String(),
+            'stadiumName': stadiumName,
+            'stadiumAddress': stadiumAddress,
+          },
         );
         return TeamMatchCreateResult.fromJson(jsonMap(response.data));
       },

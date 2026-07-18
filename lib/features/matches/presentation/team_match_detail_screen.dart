@@ -76,6 +76,16 @@ class _DetailContent extends StatelessWidget {
                 ),
                 const Divider(height: 26),
                 _InfoRow(
+                  label: '경기장',
+                  value: match.stadiumName ?? '-',
+                ),
+                const Divider(height: 26),
+                _InfoRow(
+                  label: '주소',
+                  value: match.stadiumAddress ?? '-',
+                ),
+                const Divider(height: 26),
+                _InfoRow(
                   label: '등록 일시',
                   value: _formatFullDateTime(match.createdAt),
                 ),
@@ -351,8 +361,14 @@ class _InfoRow extends StatelessWidget {
     return Row(
       children: [
         Text(label),
-        const Spacer(),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
       ],
     );
   }
