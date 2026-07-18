@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/push/push_messaging_client.dart';
+import '../../../core/push/push_notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../home/presentation/home_navigation.dart';
 import '../../matches/presentation/team_match_detail_screen.dart';
@@ -19,6 +21,53 @@ class MemberNotificationScreen extends ConsumerStatefulWidget {
 class _MemberNotificationScreenState
     extends ConsumerState<MemberNotificationScreen> {
   final Set<int> _processingIds = {};
+  PushPermissionStatus? _pushStatus;
+  bool _pushBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(_loadPushStatus);
+  }
+
+  Future<void> _loadPushStatus() async {
+    final status = await ref
+        .read(pushNotificationServiceProvider)
+        .permissionStatus();
+    if (mounted) setState(() => _pushStatus = status);
+  }
+
+  Future<void> _enablePushNotifications() async {
+    if (_pushBusy) return;
+    setState(() => _pushBusy = true);
+    try {
+      final status = await ref.read(pushNotificationServiceProvider).enable();
+      if (!mounted) return;
+      setState(() => _pushStatus = status);
+      final message = switch (status) {
+        PushPermissionStatus.authorized => '푸시 알림이 켜졌습니다.',
+        PushPermissionStatus.denied => '브라우저 설정에서 알림을 허용해주세요.',
+        PushPermissionStatus.notConfigured => '푸시 알림 설정이 아직 완료되지 않았습니다.',
+        _ => '이 기기에서는 푸시 알림을 사용할 수 없습니다.',
+      };
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is ApiException
+                ? error.message
+                : '푸시 알림을 설정하지 못했습니다.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _pushBusy = false);
+    }
+  }
 
   Future<void> _refresh() async {
     ref.invalidate(memberNotificationsProvider);
@@ -92,6 +141,15 @@ class _MemberNotificationScreenState
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
               const _NotificationHeader(),
+              if (_pushStatus != null &&
+                  _pushStatus != PushPermissionStatus.unsupported) ...[
+                const SizedBox(height: 12),
+                _PushPermissionCard(
+                  status: _pushStatus!,
+                  isBusy: _pushBusy,
+                  onEnable: _enablePushNotifications,
+                ),
+              ],
               const SizedBox(height: 18),
               Row(
                 children: [
@@ -120,6 +178,77 @@ class _MemberNotificationScreenState
                   ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PushPermissionCard extends StatelessWidget {
+  const _PushPermissionCard({
+    required this.status,
+    required this.isBusy,
+    required this.onEnable,
+  });
+
+  final PushPermissionStatus status;
+  final bool isBusy;
+  final VoidCallback onEnable;
+
+  @override
+  Widget build(BuildContext context) {
+    final authorized = status == PushPermissionStatus.authorized;
+    final denied = status == PushPermissionStatus.denied;
+    final configured = status != PushPermissionStatus.notConfigured;
+    return Card(
+      color: authorized ? const Color(0xFFF2FBE0) : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Row(
+          children: [
+            Icon(
+              authorized
+                  ? Icons.notifications_active_outlined
+                  : Icons.notifications_none_outlined,
+              color: AppTheme.navy,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    authorized ? '푸시 알림 켜짐' : '실시간 푸시 알림',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    authorized
+                        ? '앱을 닫아도 매치 성사 소식을 알려드려요.'
+                        : denied
+                        ? '브라우저 설정에서 알림 권한을 허용해주세요.'
+                        : configured
+                        ? '매치 성사 소식을 바로 받아보세요.'
+                        : '운영 Firebase 설정을 확인하고 있습니다.',
+                    style: const TextStyle(
+                      color: Color(0xFF58675F),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!authorized && !denied && configured)
+              FilledButton(
+                onPressed: isBusy ? null : onEnable,
+                child: isBusy
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('켜기'),
+              ),
+          ],
         ),
       ),
     );

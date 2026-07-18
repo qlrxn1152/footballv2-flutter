@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/push/push_notification_service.dart';
 import '../../../core/session/auth_session.dart';
 import '../../home/presentation/home_navigation.dart';
 import '../../matches/data/team_match_repository.dart';
@@ -105,6 +106,13 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    try {
+      await ref.read(pushNotificationServiceProvider).unregister();
+    } catch (error, stackTrace) {
+      if (Sentry.isEnabled) {
+        await Sentry.captureException(error, stackTrace: stackTrace);
+      }
+    }
     await _repository.logout();
     await _setMonitoringUser(null);
     _invalidateSessionData();
