@@ -17,7 +17,7 @@ class AuthRepository {
   }) {
     return runApi(() async {
       await _apiClient.dio.post<Object?>(
-        '/api/auth/signup',
+        '/api/members',
         data: {'username': username, 'password': password},
       );
     });

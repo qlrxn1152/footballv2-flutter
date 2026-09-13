@@ -1,3 +1,9 @@
+# Footmatch
+
+현재 앱은 Footmatch 백엔드에 연결합니다. 적용·검사·배포 방법과 연결 범위는 [Footmatch 웹 안내](docs/footmatch-web.md)를 확인하세요.
+
+아래는 이전 FootballV2 구현 기록입니다. 현재 Footmatch API 계약은 위 안내가 기준입니다.
+
 # FootballV2 Flutter
 
 FootballV2 Spring Boot REST API를 사용하는 Android Flutter 앱입니다.

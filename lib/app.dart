@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/brand_config.dart';
-import 'core/push/push_notification_coordinator.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_controller.dart';
 import 'features/auth/presentation/login_screen.dart';
-import 'features/home/presentation/home_screen.dart';
+import 'features/footmatch/presentation/footmatch_screen.dart';
 
 class FootballV2App extends ConsumerWidget {
   const FootballV2App({super.key});
@@ -22,9 +21,7 @@ class FootballV2App extends ConsumerWidget {
       home: switch (authState.status) {
         AuthStatus.initializing => const _SplashScreen(),
         AuthStatus.unauthenticated => const LoginScreen(),
-        AuthStatus.authenticated => const PushNotificationCoordinator(
-          child: HomeScreen(),
-        ),
+        AuthStatus.authenticated => const FootmatchScreen(),
       },
     );
   }

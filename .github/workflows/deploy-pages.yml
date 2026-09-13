@@ -16,7 +16,6 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ vars.API_BASE_URL != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,14 +35,6 @@ jobs:
           cp -R "$TEMP_WEB_ROOT/web" .
 
       - name: Configure web app
-        env:
-          FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
-          FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
-          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-          FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
-          FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
-          FIREBASE_APP_ID: ${{ vars.FIREBASE_APP_ID }}
-          FIREBASE_VAPID_KEY: ${{ vars.FIREBASE_VAPID_KEY }}
         run: |
           chmod +x tool/configure_web.sh
           ./tool/configure_web.sh
@@ -60,7 +51,7 @@ jobs:
         run: >-
           flutter build web --release
           --base-href /footballv2-flutter/
-          --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+          --dart-define=API_BASE_URL=https://footmatches.up.railway.app
           --dart-define=SENTRY_ENVIRONMENT=production
 
       - name: Configure Pages
@@ -72,7 +63,6 @@ jobs:
           path: build/web
 
   deploy:
-    if: ${{ vars.API_BASE_URL != '' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

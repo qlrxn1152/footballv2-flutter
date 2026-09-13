@@ -1,0 +1,347 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_exception.dart';
+import '../../auth/presentation/auth_controller.dart';
+import '../data/footmatch_repository.dart';
+
+class FootmatchScreen extends ConsumerStatefulWidget {
+  const FootmatchScreen({super.key});
+  @override
+  ConsumerState<FootmatchScreen> createState() => _FootmatchScreenState();
+}
+
+class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
+  final _teamNumber = TextEditingController();
+  final _teamName = TextEditingController();
+  final _matchNumber = TextEditingController();
+  final _requestNumber = TextEditingController();
+  final _memberNumber = TextEditingController();
+  Map<String, dynamic>? _me;
+  Map<String, dynamic>? _team;
+  List<Map<String, dynamic>> _members = [];
+  List<Map<String, dynamic>>? _requests;
+  final List<String> _receipts = [];
+  bool _busy = false;
+  String? _error;
+  DateTime? _playedAt;
+  int _tab = 0;
+
+  FootmatchRepository get _repo => ref.read(footmatchRepositoryProvider);
+  int? get _teamId => (_team?['teamId'] as num?)?.toInt();
+  bool get _leader => _team != null &&
+      _team!['leaderId'] == ref.read(authControllerProvider).session?.memberId;
+  bool get _joined => _leader || _members.any((m) =>
+      m['username'] == ref.read(authControllerProvider).session?.username);
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(() => _run(_loadMe));
+  }
+
+  @override
+  void dispose() {
+    for (final c in [_teamNumber, _teamName, _matchNumber,
+      _requestNumber, _memberNumber]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _run(Future<void> Function() action) async {
+    if (!mounted || _busy) return;
+    setState(() { _busy = true; _error = null; });
+    try {
+      await action();
+    } catch (error) {
+      if (!mounted) return;
+      if (error is ApiException && error.statusCode == 401) {
+        await ref.read(authControllerProvider.notifier).logout();
+        return;
+      }
+      setState(() => _error = error is ApiException
+          ? error.message : '처리하지 못했습니다. 다시 시도해주세요.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _loadMe() async {
+    final me = await _repo.me();
+    if (mounted) setState(() => _me = me);
+  }
+
+  List<Map<String, dynamic>> _items(dynamic value) =>
+      (value as List? ?? []).map((e) => jsonMap(e)).toList();
+
+  Future<void> _loadTeam(int id) async {
+    final team = await _repo.team(id);
+    final members = await _repo.members(id);
+    if (!mounted) return;
+    setState(() {
+      _team = team;
+      _members = _items(members['teamMembers']);
+      _requests = null;
+      _teamNumber.text = '$id';
+    });
+  }
+
+  void _receipt(String text) {
+    if (!mounted) return;
+    setState(() => _receipts.insert(0, text));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  int _number(TextEditingController controller, String label) {
+    final id = int.tryParse(controller.text.trim());
+    if (id == null || id <= 0) throw ApiException('$label를 올바르게 입력해주세요.');
+    return id;
+  }
+
+  String _name() {
+    final value = _teamName.text.trim();
+    if (value.length < 2 || value.length > 20) {
+      throw const ApiException('팀 이름은 2~20자로 입력해주세요.');
+    }
+    return value;
+  }
+
+  Future<bool> _confirm(String text) async => await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('확인'), content: Text(text),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('진행')),
+      ],
+    ),
+  ) ?? false;
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(context: context,
+        initialDate: now.add(const Duration(days: 1)),
+        firstDate: DateTime(now.year, now.month, now.day),
+        lastDate: now.add(const Duration(days: 730)));
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(context: context,
+        initialTime: const TimeOfDay(hour: 19, minute: 0));
+    if (time == null || !mounted) return;
+    setState(() => _playedAt = DateTime(date.year, date.month, date.day, time.hour, time.minute));
+  }
+
+  Widget _field(TextEditingController controller, String label, {bool number = false}) =>
+      Padding(padding: const EdgeInsets.only(bottom: 12), child: TextField(
+        controller: controller,
+        keyboardType: number ? TextInputType.number : TextInputType.text,
+        inputFormatters: number ? [FilteringTextInputFormatter.digitsOnly] : null,
+        decoration: InputDecoration(labelText: label),
+      ));
+
+  Widget _button(String title, Future<void> Function() action) =>
+      FilledButton.tonal(onPressed: _busy ? null : () => _run(action), child: Text(title));
+
+  Widget _card(String title, List<Widget> children) => Card(
+    child: Padding(padding: const EdgeInsets.all(20), child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [Text(title, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 16), ...children],
+    )),
+  );
+
+  Widget _profile() => Column(children: [
+    _card('내 정보', [
+      if (_me == null) const Text('내 정보를 불러와주세요.') else ...[
+        Text('${_me!['username']}', style: Theme.of(context).textTheme.headlineSmall),
+        SelectableText('회원 번호 ${_me!['memberId']}'),
+        Text('레이팅 ${_me!['rating']}'),
+        const SizedBox(height: 8),
+        const Text('팀장 위임이나 팀원 관리가 필요할 때 회원 번호를 알려주세요.'),
+      ],
+      const SizedBox(height: 12), _button('내 정보 새로고침', _loadMe),
+    ]),
+    _card('시작하기', const [
+      Text('팀 탭에서 팀을 만들거나 전달받은 팀 번호로 찾아보세요.\n'
+          '경기 탭에서는 경기를 등록하고 경기 번호로 참가 신청할 수 있어요.'),
+    ]),
+    _card('이번 접속의 처리 내역', [
+      const Text('번호가 필요한 내역은 복사해 보관하세요. 새로고침하거나 로그아웃하면 이 목록은 사라집니다.'),
+      const SizedBox(height: 12),
+      if (_receipts.isEmpty) const Text('아직 처리 내역이 없습니다.'),
+      for (final receipt in _receipts) Padding(
+        padding: const EdgeInsets.only(bottom: 12), child: SelectableText(receipt)),
+    ]),
+  ]);
+
+  Widget _teams() => Column(children: [
+    _card('팀 찾기', [
+      const Text('전달받은 팀 번호를 입력하세요.'), const SizedBox(height: 12),
+      _field(_teamNumber, '팀 번호', number: true),
+      _button('팀 조회', () async {
+        final id = _number(_teamNumber, '팀 번호');
+        setState(() { _team = null; _members = []; _requests = null; });
+        await _loadTeam(id);
+      }),
+    ]),
+    _card('팀 만들기', [
+      _field(_teamName, '팀 이름 (2~20자)'),
+      _button('팀 생성', () async {
+        final result = await _repo.createTeam(_name());
+        final id = (result['teamId'] as num).toInt();
+        _receipt('팀 생성 완료 · ${result['teamName']} · 팀 번호 $id');
+        await _loadTeam(id);
+      }),
+    ]),
+    if (_team != null) ...[
+      _card('${_team!['teamName']}', [
+        SelectableText('팀 번호 $_teamId'),
+        Text('팀장 ${_team!['leaderUsername']} · 레이팅 ${_team!['teamRating']} · ${_team!['teamMemberCount']}명'),
+        const SizedBox(height: 12),
+        for (final m in _members) ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.person_outline), title: Text('${m['username']}'),
+          subtitle: Text('레이팅 ${m['memberRating']}'),
+        ),
+        _button('팀 정보 새로고침', () => _loadTeam(_teamId!)),
+        if (!_joined) _button('가입 신청', () async {
+          final result = await _repo.join(_teamId!);
+          if (!mounted) return;
+          _requestNumber.text = '${result['joinRequestId']}';
+          _receipt('가입 신청 완료 · 팀 번호 $_teamId · 신청 번호 ${result['joinRequestId']} · 팀장에게 신청 번호를 알려주세요.');
+        }),
+        if (_joined && !_leader) _button('팀 탈퇴', () async {
+          if (!await _confirm('${_team!['teamName']} 팀에서 탈퇴할까요?')) return;
+          await _repo.leave(_teamId!);
+          _receipt('팀 탈퇴 완료');
+          await _loadTeam(_teamId!);
+        }),
+      ]),
+      _card(_leader ? '가입 신청 관리' : '내 가입 신청 취소', [
+        if (_leader) ...[
+          _button('대기 신청 조회', () async {
+            final data = await _repo.requests(_teamId!);
+            if (mounted) setState(() => _requests = _items(data['requests']));
+          }),
+          if (_requests != null && _requests!.isEmpty) const Text('대기 중인 신청이 없습니다.'),
+          for (final r in _requests ?? <Map<String, dynamic>>[]) ListTile(
+            title: Text('${r['username']}'),
+            subtitle: Text('레이팅 ${r['userRating']} · ${r['createdAt']}'),
+          ),
+          const Text('신청자에게 전달받은 신청 번호로 수락하거나 거절하세요.'),
+        ] else const Text('가입 신청 때 받은 신청 번호를 입력하세요.'),
+        const SizedBox(height: 12), _field(_requestNumber, '가입 신청 번호', number: true),
+        if (_leader) Wrap(spacing: 8, runSpacing: 8, children: [
+          _button('수락', () async {
+            final id = _number(_requestNumber, '신청 번호');
+            if (!await _confirm('신청 번호 $id 가입을 수락할까요?')) return;
+            final r = await _repo.acceptJoin(_teamId!, id);
+            _receipt('${r['memberUsername']} 가입 수락 완료');
+            await _loadTeam(_teamId!);
+          }),
+          _button('거절', () async {
+            final id = _number(_requestNumber, '신청 번호');
+            if (!await _confirm('신청 번호 $id 가입을 거절할까요?')) return;
+            await _repo.rejectJoin(_teamId!, id);
+            _receipt('가입 신청 $id 거절 완료');
+            await _loadTeam(_teamId!);
+          }),
+        ]) else _button('신청 취소', () async {
+          final id = _number(_requestNumber, '신청 번호');
+          if (!await _confirm('가입 신청 $id 번을 취소할까요?')) return;
+          await _repo.cancelJoin(_teamId!, id);
+          _receipt('가입 신청 $id 취소 완료');
+        }),
+      ]),
+      if (_leader) _card('팀장 설정', [
+        const Text('팀 이름 변경은 위의 팀 이름 입력란에 새 이름을 적은 뒤 눌러주세요.'),
+        _button('팀 이름 변경', () async {
+          await _repo.renameTeam(_teamId!, _name());
+          _receipt('팀 이름 변경 완료');
+          await _loadTeam(_teamId!);
+        }),
+        const SizedBox(height: 16),
+        _field(_memberNumber, '대상 회원 번호', number: true),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          _button('팀장 위임', () async {
+            final id = _number(_memberNumber, '회원 번호');
+            if (!await _confirm('회원 번호 $id 님에게 팀장을 위임할까요?')) return;
+            await _repo.transferLeader(_teamId!, id);
+            _receipt('회원 번호 $id 님에게 팀장 위임 완료');
+            await _loadTeam(_teamId!);
+          }),
+          _button('팀원 내보내기', () async {
+            final id = _number(_memberNumber, '회원 번호');
+            if (!await _confirm('회원 번호 $id 님을 팀에서 내보낼까요?')) return;
+            await _repo.kick(_teamId!, id);
+            _receipt('회원 번호 $id 팀원 내보내기 완료');
+            await _loadTeam(_teamId!);
+          }),
+        ]),
+      ]),
+    ],
+  ]);
+
+  Widget _matches() => Column(children: [
+    _card('경기 등록', [
+      if (!_leader) const Text('팀 탭에서 본인이 팀장인 팀을 조회한 뒤 등록할 수 있어요.') else ...[
+        Text('홈 팀: ${_team!['teamName']}'),
+        const SizedBox(height: 12),
+        OutlinedButton(onPressed: _busy ? null : _pickDate,
+            child: Text(_playedAt == null ? '경기 날짜와 시간 선택'
+                : _playedAt!.toString().substring(0, 16))),
+        _button('경기 등록', () async {
+          if (_playedAt == null || !_playedAt!.isAfter(DateTime.now())) {
+            throw const ApiException('현재보다 나중인 경기 시간을 선택해주세요.');
+          }
+          final r = await _repo.createMatch(_teamId!, _playedAt!);
+          _receipt('경기 등록 완료 · 경기 번호 ${r['matchId']} · ${r['homeTeamName']} · ${r['playedAt']}');
+          if (mounted) setState(() => _playedAt = null);
+        }),
+      ],
+    ]),
+    _card('경기 참가 신청', [
+      const Text('상대 팀에게 전달받은 경기 번호를 입력하세요. 소속 팀의 팀장이 신청할 수 있어요.'),
+      const SizedBox(height: 12), _field(_matchNumber, '경기 번호', number: true),
+      _button('참가 신청', () async {
+        final id = _number(_matchNumber, '경기 번호');
+        if (!await _confirm('경기 번호 $id 번에 참가 신청할까요?')) return;
+        final r = await _repo.requestMatch(id);
+        _receipt('참가 신청 완료 · ${r['homeTeamName']} vs ${r['awayTeamName']} · 경기 번호 ${r['matchId']} · 신청 번호 ${r['requestId']}');
+      }),
+    ]),
+    _card('경기 번호 보관', const [
+      Text('등록·신청 결과는 내 정보 탭의 처리 내역에서 복사할 수 있어요.\n'
+          '경기 목록과 결과 기록은 추후 제공 예정입니다.'),
+    ]),
+  ]);
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Footmatch'), actions: [
+      IconButton(tooltip: '로그아웃', onPressed: _busy ? null : () async {
+        await ref.read(authControllerProvider.notifier).logout();
+      }, icon: const Icon(Icons.logout)),
+    ]),
+    body: SafeArea(child: Column(children: [
+      if (_busy) const LinearProgressIndicator(),
+      if (_error != null) MaterialBanner(content: Text(_error!), actions: [
+        TextButton(onPressed: () => setState(() => _error = null), child: const Text('닫기')),
+      ]),
+      Expanded(child: IgnorePointer(ignoring: _busy, child: SingleChildScrollView(
+        key: ValueKey(_tab), padding: const EdgeInsets.all(16),
+        child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760),
+          child: switch (_tab) { 1 => _teams(), 2 => _matches(), _ => _profile() },
+        )),
+      ))),
+    ])),
+    bottomNavigationBar: NavigationBar(selectedIndex: _tab,
+      onDestinationSelected: _busy ? null : (value) => setState(() => _tab = value),
+      destinations: const [
+        NavigationDestination(icon: Icon(Icons.person_outline), label: '내 정보'),
+        NavigationDestination(icon: Icon(Icons.groups_outlined), label: '팀'),
+        NavigationDestination(icon: Icon(Icons.sports_soccer), label: '경기'),
+      ],
+    ),
+  );
+}

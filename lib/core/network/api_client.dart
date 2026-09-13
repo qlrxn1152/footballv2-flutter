@@ -35,7 +35,8 @@ class ApiClient {
       QueuedInterceptorsWrapper(
         onRequest: (options, handler) async {
           final session = await _sessionStore.read();
-          if (session != null) {
+          if (session != null && options.path != '/api/auth/login' &&
+              options.path != '/api/members') {
             options.headers['Authorization'] =
                 '${session.tokenType} ${session.accessToken}';
           }
@@ -58,6 +59,5 @@ class ApiClient {
 final apiClientProvider = Provider<ApiClient>(
   (ref) => ApiClient(
     ref.watch(sessionStoreProvider),
-    visitorIdStore: ref.watch(visitorIdStoreProvider),
   ),
 );

@@ -4,6 +4,17 @@ import 'package:footballv2_flutter/core/session/auth_session.dart';
 import 'package:footballv2_flutter/core/session/session_store.dart';
 
 void main() {
+  test('Footmatch does not restore legacy FootballV2 tokens', () async {
+    final storage = _TrackingSecureStorage();
+    await storage.write(key: 'access_token', value: 'legacy-token');
+    await storage.write(key: 'token_type', value: 'Bearer');
+    await storage.write(key: 'expires_at', value: DateTime.now().add(const Duration(hours: 1)).toIso8601String());
+    await storage.write(key: 'member_id', value: '7');
+    await storage.write(key: 'username', value: 'legacy-user');
+    await storage.write(key: 'member_rating', value: '1500');
+    expect(await SecureSessionStore(storage).read(), isNull);
+  });
+
   test('세션 항목을 동시에 쓰지 않고 순서대로 저장한다', () async {
     final storage = _TrackingSecureStorage();
     final store = SecureSessionStore(storage);
