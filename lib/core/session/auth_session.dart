@@ -26,7 +26,7 @@ class AuthSession {
       expiresAt: DateTime.now().add(Duration(seconds: expiresIn)),
       memberId: (json['memberId'] as num).toInt(),
       username: json['username'] as String,
-      memberRating: (json['memberRating'] as num).toInt(),
+      memberRating: (json['memberRating'] as num?)?.toInt() ?? 0,
     );
   }
 }

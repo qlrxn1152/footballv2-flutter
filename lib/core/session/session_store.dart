@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'auth_session.dart';
+import '../config/app_config.dart';
 
 abstract interface class SessionStore {
   Future<void> save(AuthSession session);
@@ -13,12 +14,12 @@ class SecureSessionStore implements SessionStore {
   SecureSessionStore([FlutterSecureStorage? storage])
     : _storage = storage ?? FlutterSecureStorage();
 
-  static const _tokenKey = 'access_token';
-  static const _tokenTypeKey = 'token_type';
-  static const _expiresAtKey = 'expires_at';
-  static const _memberIdKey = 'member_id';
-  static const _usernameKey = 'username';
-  static const _ratingKey = 'member_rating';
+  static const _tokenKey = 'footmatch:${AppConfig.apiBaseUrl}:access_token';
+  static const _tokenTypeKey = 'footmatch:${AppConfig.apiBaseUrl}:token_type';
+  static const _expiresAtKey = 'footmatch:${AppConfig.apiBaseUrl}:expires_at';
+  static const _memberIdKey = 'footmatch:${AppConfig.apiBaseUrl}:member_id';
+  static const _usernameKey = 'footmatch:${AppConfig.apiBaseUrl}:username';
+  static const _ratingKey = 'footmatch:${AppConfig.apiBaseUrl}:member_rating';
 
   final FlutterSecureStorage _storage;
 

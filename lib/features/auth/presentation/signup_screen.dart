@@ -94,7 +94,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         labelText: '비밀번호',
-                        helperText: '4~30자',
+                        helperText: '4~15자',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           onPressed: () => setState(
@@ -109,8 +109,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       ),
                       validator: (value) {
                         final length = value?.length ?? 0;
-                        if (length < 4 || length > 30) {
-                          return '비밀번호는 4~30자로 입력하세요.';
+                        if (length < 4 || length > 15) {
+                          return '비밀번호는 4~15자로 입력하세요.';
                         }
                         return null;
                       },

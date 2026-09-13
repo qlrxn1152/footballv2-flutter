@@ -4,14 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'app.dart';
-import 'core/analytics/app_visit_tracker.dart';
 import 'core/config/app_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   const app = ProviderScope(
-    child: AppVisitTracker(child: FootballV2App()),
+    child: FootballV2App(),
   );
 
   final monitoringEnabled =
