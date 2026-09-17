@@ -96,10 +96,12 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
       final team = await _repo.myTeam();
       if (mounted) setState(() => _myTeam = team);
     } catch (error) {
-      if (mounted) setState(() {
-        _myTeam = null;
-        _myTeamError = error is ApiException ? error.message : '내 팀을 불러오지 못했습니다.';
-      });
+      if (mounted) {
+        setState(() {
+          _myTeam = null;
+          _myTeamError = error is ApiException ? error.message : '내 팀을 불러오지 못했습니다.';
+        });
+      }
     } finally {
       if (mounted) setState(() => _myTeamLoading = false);
     }
