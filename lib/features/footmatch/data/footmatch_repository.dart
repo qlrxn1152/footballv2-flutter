@@ -20,6 +20,20 @@ class FootmatchRepository {
     return jsonMap(response.data);
   });
 
+  Future<List<Map<String, dynamic>>> allMembers() => _directory('/api/members', 'members');
+  Future<List<Map<String, dynamic>>> allTeams() => _directory('/api/teams', 'teams');
+  Future<Map<String, dynamic>?> myTeam() async {
+    final team = await _request('GET', '/api/teams/me');
+    return team.isEmpty ? null : team;
+  }
+
+  Future<List<Map<String, dynamic>>> _directory(String path, String key) async {
+    final response = await _request('GET', path);
+    final items = response[key];
+    if (items is! List) throw const ApiException('목록 응답 형식이 올바르지 않습니다.');
+    return items.map(jsonMap).toList();
+  }
+
   Future<Map<String, dynamic>> me() => _request('GET', '/api/members/me');
   Future<Map<String, dynamic>> team(int id) => _request('GET', '/api/teams/$id');
   Future<Map<String, dynamic>> members(int id) =>

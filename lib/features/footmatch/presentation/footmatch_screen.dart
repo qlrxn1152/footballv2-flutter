@@ -5,6 +5,7 @@ import '../../../core/network/api_exception.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../data/footmatch_repository.dart';
 import 'footmatch_match_list.dart';
+import 'footmatch_directory.dart';
 
 class FootmatchScreen extends ConsumerStatefulWidget {
   const FootmatchScreen({super.key});
@@ -22,6 +23,13 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
   final _memberNumber = TextEditingController();
   Map<String, dynamic>? _me;
   Map<String, dynamic>? _team;
+  Map<String, dynamic>? _myTeam;
+  bool _myTeamLoading = true;
+  String? _myTeamError;
+  int _memberView = 0;
+  int _teamView = 0;
+  int _matchScope = 0;
+  int _directoryRevision = 0;
   List<Map<String, dynamic>> _members = [];
   List<Map<String, dynamic>>? _requests;
   final List<String> _receipts = [];
@@ -32,6 +40,9 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
 
   FootmatchRepository get _repo => ref.read(footmatchRepositoryProvider);
   int? get _teamId => (_team?['teamId'] as num?)?.toInt();
+  int? get _myTeamId => (_myTeam?['teamId'] as num?)?.toInt();
+  bool get _myTeamLeader => _myTeam != null &&
+      _myTeam!['leaderId'] == ref.read(authControllerProvider).session?.memberId;
   bool get _leader => _team != null &&
       _team!['leaderId'] == ref.read(authControllerProvider).session?.memberId;
   bool get _joined => _leader || _members.any((m) =>
@@ -40,7 +51,10 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
   @override
   void initState() {
     super.initState();
-    Future<void>.microtask(() => _run(_loadMe));
+    Future<void>.microtask(() => _run(() async {
+      await _loadMe();
+      await _loadMyTeam();
+    }));
   }
 
   @override
@@ -74,6 +88,79 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
     final me = await _repo.me();
     if (mounted) setState(() => _me = me);
   }
+
+  Future<void> _loadMyTeam() async {
+    if (!mounted) return;
+    setState(() { _myTeamLoading = true; _myTeamError = null; });
+    try {
+      final team = await _repo.myTeam();
+      if (mounted) setState(() => _myTeam = team);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _myTeam = null;
+          _myTeamError = error is ApiException ? error.message : '내 팀을 불러오지 못했습니다.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _myTeamLoading = false);
+    }
+  }
+
+  Future<void> _refreshTeam(int id) async {
+    await _loadTeam(id);
+    await _loadMyTeam();
+    if (mounted) setState(() => _directoryRevision++);
+  }
+
+  Future<void> _openMyTeam() async {
+    await _loadMyTeam();
+    if (_myTeamId != null) {
+      await _loadTeam(_myTeamId!);
+    } else if (mounted) {
+      setState(() { _team = null; _members = []; _requests = null; });
+    }
+  }
+
+  Widget _choices(List<String> labels, int selected, ValueChanged<int> onSelected) =>
+      Padding(padding: const EdgeInsets.only(bottom: 12), child: Wrap(spacing: 8, runSpacing: 8,
+        children: [for (var i = 0; i < labels.length; i++)
+          ChoiceChip(label: Text(labels[i]), selected: selected == i,
+              onSelected: _busy ? null : (_) => onSelected(i)),
+        ],
+      ));
+
+  Widget _myTeamStatus() {
+    if (_myTeamLoading) return const Center(child: CircularProgressIndicator());
+    return _card('내 소속 팀', [
+      Text(_myTeamError ?? (_myTeam == null ? '소속된 팀이 없습니다. 전체 팀에서 가입하거나 팀을 만들어보세요.' : '${_myTeam!['teamName']}')),
+      _button('내 팀 새로고침', _openMyTeam),
+    ]);
+  }
+
+  Widget _memberTab() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    _choices(['전체 회원', '내 정보'], _memberView, (value) {
+      setState(() => _memberView = value);
+      if (value == 1) _run(_loadMe);
+    }),
+    if (_memberView == 0) const FootmatchDirectory(key: ValueKey('members'), teams: false)
+    else _profile(),
+  ]);
+
+  Widget _teamTab() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    _choices(['전체 팀', '내 팀'], _teamView, (value) {
+      setState(() => _teamView = value);
+      if (value == 1) _run(_openMyTeam);
+    }),
+    if (_teamView == 0) ...[
+      FootmatchDirectory(key: ValueKey('teams-$_directoryRevision'), teams: true,
+          onTeamSelected: (id) => _run(() => _loadTeam(id))),
+      _teams(),
+    ] else ...[
+      _myTeamStatus(),
+      if (_myTeam != null && _teamId == _myTeamId) _teams(),
+    ],
+  ]);
 
   List<Map<String, dynamic>> _items(dynamic value) =>
       (value as List? ?? []).map((e) => jsonMap(e)).toList();
@@ -178,7 +265,7 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
   ]);
 
   Widget _teams() => Column(children: [
-    _card('팀 찾기', [
+    if (_teamView == 0) _card('팀 찾기', [
       const Text('전달받은 팀 번호를 입력하세요.'), const SizedBox(height: 12),
       _field(_teamNumber, '팀 번호', number: true),
       _button('팀 조회', () async {
@@ -187,13 +274,13 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
         await _loadTeam(id);
       }),
     ]),
-    _card('팀 만들기', [
+    if (_teamView == 0 && _myTeam == null) _card('팀 만들기', [
       _field(_teamName, '팀 이름 (2~20자)'),
       _button('팀 생성', () async {
         final result = await _repo.createTeam(_name());
         final id = (result['teamId'] as num).toInt();
         _receipt('팀 생성 완료 · ${result['teamName']} · 팀 번호 $id');
-        await _loadTeam(id);
+        await _refreshTeam(id);
       }),
     ]),
     if (_team != null) ...[
@@ -206,7 +293,7 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
           leading: const Icon(Icons.person_outline), title: Text('${m['username']}'),
           subtitle: Text('레이팅 ${m['memberRating']}'),
         ),
-        _button('팀 정보 새로고침', () => _loadTeam(_teamId!)),
+        _button('팀 정보 새로고침', () => _refreshTeam(_teamId!)),
         if (!_joined) _button('가입 신청', () async {
           final result = await _repo.join(_teamId!);
           if (!mounted) return;
@@ -217,7 +304,7 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
           if (!await _confirm('${_team!['teamName']} 팀에서 탈퇴할까요?')) return;
           await _repo.leave(_teamId!);
           _receipt('팀 탈퇴 완료');
-          await _loadTeam(_teamId!);
+          await _refreshTeam(_teamId!);
         }),
       ]),
       FootmatchMatchList(key: ValueKey('team-$_teamId'), teamId: _teamId, revision: _matchRevision),
@@ -241,14 +328,14 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
             if (!await _confirm('신청 번호 $id 가입을 수락할까요?')) return;
             final r = await _repo.acceptJoin(_teamId!, id);
             _receipt('${r['memberUsername']} 가입 수락 완료');
-            await _loadTeam(_teamId!);
+            await _refreshTeam(_teamId!);
           }),
           _button('거절', () async {
             final id = _number(_requestNumber, '신청 번호');
             if (!await _confirm('신청 번호 $id 가입을 거절할까요?')) return;
             await _repo.rejectJoin(_teamId!, id);
             _receipt('가입 신청 $id 거절 완료');
-            await _loadTeam(_teamId!);
+            await _refreshTeam(_teamId!);
           }),
         ]) else _button('신청 취소', () async {
           final id = _number(_requestNumber, '신청 번호');
@@ -262,7 +349,7 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
         _button('팀 이름 변경', () async {
           await _repo.renameTeam(_teamId!, _name());
           _receipt('팀 이름 변경 완료');
-          await _loadTeam(_teamId!);
+          await _refreshTeam(_teamId!);
         }),
         const SizedBox(height: 16),
         _field(_memberNumber, '대상 회원 번호', number: true),
@@ -272,14 +359,14 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
             if (!await _confirm('회원 번호 $id 님에게 팀장을 위임할까요?')) return;
             await _repo.transferLeader(_teamId!, id);
             _receipt('회원 번호 $id 님에게 팀장 위임 완료');
-            await _loadTeam(_teamId!);
+            await _refreshTeam(_teamId!);
           }),
           _button('팀원 내보내기', () async {
             final id = _number(_memberNumber, '회원 번호');
             if (!await _confirm('회원 번호 $id 님을 팀에서 내보낼까요?')) return;
             await _repo.kick(_teamId!, id);
             _receipt('회원 번호 $id 팀원 내보내기 완료');
-            await _loadTeam(_teamId!);
+            await _refreshTeam(_teamId!);
           }),
         ]),
       ]),
@@ -293,13 +380,20 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
   }
 
   Widget _matches() => Column(children: [
-    FootmatchMatchList(
+    _choices(['우리 팀', '전체 팀'], _matchScope, (value) {
+      setState(() => _matchScope = value);
+      if (value == 0) _run(_loadMyTeam);
+    }),
+    if (_matchScope == 0 && (_myTeamLoading || _myTeam == null)) _myTeamStatus()
+    else FootmatchMatchList(
+      key: ValueKey('matches-${_matchScope == 0 ? _myTeamId : 'all'}'),
+      teamId: _matchScope == 0 ? _myTeamId : null,
       revision: _matchRevision,
-      onRequest: (match) => _run(() => _requestMatch(match.id)),
+      onRequest: _matchScope == 1 ? (match) => _run(() => _requestMatch(match.id)) : null,
     ),
     _card('경기 등록', [
-      if (!_leader) const Text('팀 탭에서 본인이 팀장인 팀을 조회한 뒤 등록할 수 있어요.') else ...[
-        Text('홈 팀: ${_team!['teamName']}'),
+      if (!_myTeamLeader) const Text('소속 팀의 팀장이 경기를 등록할 수 있어요.') else ...[
+        Text('홈 팀: ${_myTeam!['teamName']}'),
         const SizedBox(height: 12),
         OutlinedButton(onPressed: _busy ? null : _pickDate,
             child: Text(_playedAt == null ? '경기 날짜와 시간 선택'
@@ -308,7 +402,7 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
           if (_playedAt == null || !_playedAt!.isAfter(DateTime.now())) {
             throw const ApiException('현재보다 나중인 경기 시간을 선택해주세요.');
           }
-          final r = await _repo.createMatch(_teamId!, _playedAt!);
+          final r = await _repo.createMatch(_myTeamId!, _playedAt!);
           _receipt('경기 등록 완료 · 경기 번호 ${r['matchId']} · ${r['homeTeamName']} · ${r['playedAt']}');
           if (mounted) setState(() { _playedAt = null; _matchRevision++; });
         }),
@@ -322,7 +416,7 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
         await _requestMatch(id);
       }),
     ]),
-    if (_leader) _card('경기 참가 신청 수락', [
+    if (_myTeamLeader) _card('경기 참가 신청 수락', [
       const Text('위 경기 번호 입력란에 우리 팀이 등록한 경기 번호를 적고, 상대 팀에게 전달받은 신청 번호를 입력하세요.'),
       const SizedBox(height: 12),
       _field(_matchRequestNumber, '경기 참가 신청 번호', number: true),
@@ -336,8 +430,8 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
       }),
     ]),
     _card('경기 번호 보관', const [
-      Text('등록·신청 결과는 내 정보 탭의 처리 내역에서 복사할 수 있어요.\n'
-          '경기 신청을 수락하면 매칭 완료 목록에서 확인할 수 있어요.'),
+      Text('등록·신청 결과는 회원 → 내 정보의 처리 내역에서 복사할 수 있어요.\n'
+          '경기 신청을 수락하면 진행 중 목록에서 확인할 수 있어요.'),
     ]),
   ]);
 
@@ -356,14 +450,18 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
       Expanded(child: IgnorePointer(ignoring: _busy, child: SingleChildScrollView(
         key: ValueKey(_tab), padding: const EdgeInsets.all(16),
         child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760),
-          child: switch (_tab) { 1 => _teams(), 2 => _matches(), _ => _profile() },
+          child: switch (_tab) { 1 => _teamTab(), 2 => _matches(), _ => _memberTab() },
         )),
       ))),
     ])),
     bottomNavigationBar: NavigationBar(selectedIndex: _tab,
-      onDestinationSelected: _busy ? null : (value) => setState(() => _tab = value),
+      onDestinationSelected: _busy ? null : (value) {
+        setState(() => _tab = value);
+        if (value == 2) _run(_loadMyTeam);
+        if (value == 1 && _teamView == 1) _run(_openMyTeam);
+      },
       destinations: const [
-        NavigationDestination(icon: Icon(Icons.person_outline), label: '내 정보'),
+        NavigationDestination(icon: Icon(Icons.person_outline), label: '회원'),
         NavigationDestination(icon: Icon(Icons.groups_outlined), label: '팀'),
         NavigationDestination(icon: Icon(Icons.sports_soccer), label: '경기'),
       ],

@@ -85,6 +85,9 @@ class _FootmatchMatchListState extends ConsumerState<FootmatchMatchList> {
                   if (match.awayName != null)
                     Text('원정: ${match.awayName} · 레이팅 ${match.awayRating} · 팀장 ${match.awayLeader}'),
                   Text(match.playedAt == null ? '경기 일시 정보 없음' : '경기 일시 ${_date(match.playedAt!)}'),
+                  if (match.status == FootmatchMatchStatus.completed) ...[
+                    Text(match.winnerTeamName == null ? '무승부' : '승리 팀 ${match.winnerTeamName}'),
+                  ],
                   if (match.createdAt != null) Text('등록 일시 ${_date(match.createdAt!)}'),
                   if (match.status == FootmatchMatchStatus.pending && widget.onRequest != null)
                     Align(alignment: Alignment.centerRight, child: TextButton(

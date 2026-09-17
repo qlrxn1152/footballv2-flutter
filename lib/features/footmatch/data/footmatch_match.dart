@@ -1,6 +1,7 @@
 enum FootmatchMatchStatus {
-  pending('모집 중'),
-  matched('매칭 완료');
+  pending('대기 중'),
+  matched('진행 중'),
+  completed('종료');
 
   const FootmatchMatchStatus(this.label);
   final String label;
@@ -18,6 +19,7 @@ class FootmatchMatch {
     this.awayLeader,
     this.playedAt,
     this.createdAt,
+    this.winnerTeamName,
   });
 
   final int id;
@@ -30,6 +32,7 @@ class FootmatchMatch {
   final String? awayLeader;
   final DateTime? playedAt;
   final DateTime? createdAt;
+  final String? winnerTeamName;
 
   factory FootmatchMatch.fromJson(
       Map<String, dynamic> json, FootmatchMatchStatus status) {
@@ -44,6 +47,7 @@ class FootmatchMatch {
       awayRating: (json['awayTeamRating'] as num?)?.toInt(),
       awayLeader: json['awayTeamLeaderUsername'] as String?,
       playedAt: DateTime.tryParse(json['matchPlayedAt']?.toString() ?? ''),
+      winnerTeamName: json['winnerTeamName'] as String?,
       createdAt: DateTime.tryParse(json['matchCreatedAt']?.toString() ?? ''),
     );
   }
