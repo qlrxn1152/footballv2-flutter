@@ -64,6 +64,41 @@ void main() {
     await FootmatchRepository(dio).acceptMatch(11, 42);
   });
 
+  test('old Railway routes remain usable during the backend rollout', () async {
+    final dio = Dio();
+    final paths = <String>[];
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      paths.add(options.path);
+      if (options.path.startsWith('/api/team-matches/')) {
+        handler.reject(DioException(requestOptions: options,
+          type: DioExceptionType.badResponse,
+          response: Response<Object?>(requestOptions: options, statusCode: 404)));
+      } else {
+        handler.resolve(Response<Object?>(requestOptions: options, data: {'matchId': 11}));
+      }
+    }));
+    final repo = FootmatchRepository(dio);
+    await repo.createMatch(3, DateTime(2027));
+    await repo.requestMatch(11);
+    expect(paths, ['/api/team-matches/3/matches', '/api/team-match/3/matches',
+      '/api/team-matches/11/accept-requests', '/api/team-match/11/accept-requests']);
+  });
+
+  test('auth, validation and network failures never retry mutations', () async {
+    for (final status in [401, 403, 409, 500, null]) {
+      final dio = Dio();
+      var calls = 0;
+      dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+        calls++;
+        handler.reject(DioException(requestOptions: options,
+          type: status == null ? DioExceptionType.receiveTimeout : DioExceptionType.badResponse,
+          response: status == null ? null : Response<Object?>(requestOptions: options, statusCode: status)));
+      }));
+      await expectLater(FootmatchRepository(dio).requestMatch(11), throwsException);
+      expect(calls, 1);
+    }
+  });
+
   testWidgets('switch to matched hides participation and shows both teams', (tester) async {
     final dio = Dio();
     dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {

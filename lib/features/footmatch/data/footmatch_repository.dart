@@ -45,10 +45,26 @@ class FootmatchRepository {
   Future<Map<String, dynamic>> cancelJoin(int id, int requestId) =>
       _request('POST', '/api/teams/$id/join-request/$requestId/cancel');
   Future<Map<String, dynamic>> createMatch(int teamId, DateTime playedAt) =>
-      _request('POST', '/api/team-matches/$teamId/matches',
+      _matchMutation('/api/team-matches/$teamId/matches',
           {'playedAt': playedAt.toIso8601String()});
   Future<Map<String, dynamic>> requestMatch(int matchId) =>
-      _request('POST', '/api/team-matches/$matchId/accept-requests');
+      _matchMutation('/api/team-matches/$matchId/accept-requests');
+
+  // Keep registration/participation working while Railway is on the old API.
+  // Only a missing route permits a retry; never retry auth, business, or network errors.
+  Future<Map<String, dynamic>> _matchMutation(String path,
+      [Map<String, dynamic>? data]) async {
+    try {
+      return await _request('POST', path, data);
+    } on ApiException catch (error) {
+      if (error.statusCode != 404 || error.code != null) rethrow;
+      try {
+        return await _request('POST', path.replaceFirst('/api/team-matches/', '/api/team-match/'), data);
+      } on ApiException {
+        throw error;
+      }
+    }
+  }
   Future<List<FootmatchMatch>> matches(FootmatchMatchStatus status,
       {int? teamId}) async {
     final path = teamId == null
