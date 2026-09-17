@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import 'footmatch_match.dart';
 
 final footmatchRepositoryProvider = Provider<FootmatchRepository>(
   (ref) => FootmatchRepository(ref.watch(apiClientProvider).dio),
@@ -44,8 +45,23 @@ class FootmatchRepository {
   Future<Map<String, dynamic>> cancelJoin(int id, int requestId) =>
       _request('POST', '/api/teams/$id/join-request/$requestId/cancel');
   Future<Map<String, dynamic>> createMatch(int teamId, DateTime playedAt) =>
-      _request('POST', '/api/team-match/$teamId/matches',
+      _request('POST', '/api/team-matches/$teamId/matches',
           {'playedAt': playedAt.toIso8601String()});
   Future<Map<String, dynamic>> requestMatch(int matchId) =>
-      _request('POST', '/api/team-match/$matchId/accept-requests');
+      _request('POST', '/api/team-matches/$matchId/accept-requests');
+  Future<List<FootmatchMatch>> matches(FootmatchMatchStatus status,
+      {int? teamId}) async {
+    final path = teamId == null
+        ? '/api/team-matches/${status.name}'
+        : '/api/teams/$teamId/matches/${status.name}';
+    final response = await _request('GET', path);
+    final items = response['${status.name}Matches'];
+    if (items is! List) {
+      throw const ApiException('경기 목록 응답 형식이 올바르지 않습니다.');
+    }
+    return items.map((item) => FootmatchMatch.fromJson(jsonMap(item), status)).toList();
+  }
+
+  Future<Map<String, dynamic>> acceptMatch(int matchId, int requestId) =>
+      _request('POST', '/api/team-matches/$matchId/accept-requests/$requestId');
 }
