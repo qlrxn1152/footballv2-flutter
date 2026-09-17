@@ -80,9 +80,9 @@ void main() {
     final repo = FootmatchRepository(dio);
     await repo.createMatch(3, DateTime(2027, 1, 2, 19));
     await repo.requestMatch(9);
-    expect(requests[0].path, '/api/team-match/3/matches');
+    expect(requests[0].path, '/api/team-matches/3/matches');
     expect(requests[0].data, {'playedAt': '2027-01-02T19:00:00.000'});
-    expect(requests[1].path, '/api/team-match/9/accept-requests');
+    expect(requests[1].path, '/api/team-matches/9/accept-requests');
     expect(requests[1].method, 'POST');
   });
 
