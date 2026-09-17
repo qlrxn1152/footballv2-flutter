@@ -13,7 +13,9 @@ const pending = {
   'matchPlayedAt': '2026-09-20T19:00:00',
 };
 const matched = {
-  ...pending, 'matchId': 12, 'awayTeamName': '부산 FC',
+  'matchId': 12, 'homeTeamName': '서울 FC', 'homeTeamRating': 1500,
+  'homeTeamLeaderUsername': 'home', 'matchCreatedAt': '2026-09-17T10:00:00',
+  'matchPlayedAt': '2026-09-20T19:00:00', 'awayTeamName': '부산 FC',
   'awayTeamRating': 1600, 'awayTeamLeaderUsername': 'away',
 };
 
