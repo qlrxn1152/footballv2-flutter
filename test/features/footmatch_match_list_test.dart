@@ -56,6 +56,44 @@ void main() {
     expect(teamMatched.single.awayRating, 1600);
   });
 
+  test('completed lists use the completed wrapper for both scopes', () async {
+    final dio = Dio();
+    final paths = <String>[];
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      paths.add(options.path);
+      handler.resolve(Response<Object?>(requestOptions: options, data: {
+        'completedMatches': [{...matched, 'winnerTeamName': '서울 FC'}],
+      }));
+    }));
+    final repo = FootmatchRepository(dio);
+    final global = await repo.matches(FootmatchMatchStatus.completed);
+    final team = await repo.matches(FootmatchMatchStatus.completed, teamId: 3);
+    expect(paths, ['/api/team-matches/completed', '/api/teams/3/matches/completed']);
+    expect(global.single.winnerTeamName, '서울 FC');
+    expect(team.single.status, FootmatchMatchStatus.completed);
+  });
+
+  testWidgets('completed matches display winner or draw without a participation action', (tester) async {
+    final dio = Dio();
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response<Object?>(requestOptions: options, data:
+        options.path.endsWith('/completed')
+          ? {'completedMatches': [
+              {...matched, 'winnerTeamName': '서울 FC'},
+              {...matched, 'matchId': 13, 'winnerTeamName': null},
+            ]}
+          : {'pendingMatches': []}));
+    }));
+    await tester.pumpWidget(app(FootmatchRepository(dio), onRequest: (_) {}));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('종료'));
+    await tester.pumpAndSettle();
+    expect(find.text('승리 팀 서울 FC'), findsOneWidget);
+    expect(find.text('무승부'), findsOneWidget);
+    expect(find.text('이 경기 참가 신청'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   test('acceptance uses match and request identifiers in the plural route', () async {
     final dio = Dio();
     dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
@@ -113,7 +151,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('이 경기 참가 신청'));
     expect(requested, 11);
-    await tester.tap(find.text('매칭 완료'));
+    await tester.tap(find.text('진행 중'));
     await tester.pumpAndSettle();
     expect(find.text('서울 FC vs 부산 FC'), findsOneWidget);
     expect(find.text('경기 일시 2026-09-20 19:00'), findsOneWidget);
@@ -139,7 +177,7 @@ void main() {
     expect(find.text('잠시 후 다시 시도해주세요.'), findsOneWidget);
     await tester.tap(find.text('다시 시도'));
     await tester.pumpAndSettle();
-    expect(find.text('모집 중 경기가 없습니다.'), findsOneWidget);
+    expect(find.text('대기 중 경기가 없습니다.'), findsOneWidget);
   });
 
   testWidgets('late pending response cannot replace a newer matched selection', (tester) async {
@@ -156,12 +194,12 @@ void main() {
     }));
     await tester.pumpWidget(app(FootmatchRepository(dio)));
     await tester.pump();
-    await tester.tap(find.text('매칭 완료'));
+    await tester.tap(find.text('진행 중'));
     await tester.pumpAndSettle();
     (await pendingHandler.future).resolve(Response<Object?>(
       requestOptions: pendingOptions!, data: {'pendingMatches': [pending]}));
     await tester.pumpAndSettle();
     expect(find.text('서울 FC vs 부산 FC'), findsOneWidget);
-    expect(find.text('경기 번호 11 · 모집 중'), findsNothing);
+    expect(find.text('경기 번호 11 · 대기 중'), findsNothing);
   });
 }
