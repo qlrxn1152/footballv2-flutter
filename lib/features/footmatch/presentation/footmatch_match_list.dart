@@ -86,6 +86,16 @@ class _FootmatchMatchListState extends ConsumerState<FootmatchMatchList> {
                     Text('원정: ${match.awayName} · 레이팅 ${match.awayRating} · 팀장 ${match.awayLeader}'),
                   Text(match.playedAt == null ? '경기 일시 정보 없음' : '경기 일시 ${_date(match.playedAt!)}'),
                   if (match.createdAt != null) Text('등록 일시 ${_date(match.createdAt!)}'),
+                  if (match.status == FootmatchMatchStatus.completed)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        match.isDraw
+                            ? '경기 결과 · 무승부'
+                            : '경기 결과 · ${match.winnerTeamName} 승리',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
                   if (match.status == FootmatchMatchStatus.pending && widget.onRequest != null)
                     Align(alignment: Alignment.centerRight, child: TextButton(
                       onPressed: () => widget.onRequest!(match), child: const Text('이 경기 참가 신청'))),
