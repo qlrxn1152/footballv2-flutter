@@ -13,10 +13,16 @@ const pending = {
   'matchPlayedAt': '2026-09-20T19:00:00',
 };
 const matched = {
-  'matchId': 12, 'homeTeamName': '서울 FC', 'homeTeamRating': 1500,
+  'matchId': 12, 'homeTeamId': 3, 'homeTeamName': '서울 FC', 'homeTeamRating': 1500,
   'homeTeamLeaderUsername': 'home', 'matchCreatedAt': '2026-09-17T10:00:00',
-  'matchPlayedAt': '2026-09-20T19:00:00', 'awayTeamName': '부산 FC',
+  'matchPlayedAt': '2026-09-20T19:00:00', 'awayTeamId': 4, 'awayTeamName': '부산 FC',
   'awayTeamRating': 1600, 'awayTeamLeaderUsername': 'away',
+};
+const completed = {
+  'matchId': 13, 'homeTeamId': 3, 'homeTeamName': '서울 FC', 'homeTeamRating': 1500,
+  'homeTeamLeaderUsername': 'home', 'matchPlayedAt': '2026-09-19T19:00:00',
+  'awayTeamId': 4, 'awayTeamName': '부산 FC', 'awayTeamRating': 1600,
+  'awayTeamLeaderUsername': 'away', 'winnerTeamName': '서울 FC',
 };
 
 Widget app(FootmatchRepository repo, {int? teamId, ValueChanged<FootmatchMatch>? onRequest}) =>
@@ -54,6 +60,77 @@ void main() {
     expect(teamPending.single.homeName, '서울 FC');
     expect(teamPending.single.playedAt, isNull);
     expect(teamMatched.single.awayRating, 1600);
+  });
+
+  test('completed lists and result registration follow the current backend contract', () async {
+    final dio = Dio();
+    final requests = <RequestOptions>[];
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      requests.add(options);
+      if (options.method == 'GET') {
+        handler.resolve(Response<Object?>(
+          requestOptions: options,
+          data: {'completedMatches': [completed]},
+        ));
+        return;
+      }
+      handler.resolve(Response<Object?>(
+        requestOptions: options,
+        statusCode: 201,
+        data: {
+          'matchResultId': 21,
+          'matchId': 13,
+          'homeScore': 3,
+          'homeTeamName': '서울 FC',
+          'awayScore': 1,
+          'awayTeamName': '부산 FC',
+          'winnerTeamName': '서울 FC',
+        },
+      ));
+    }));
+
+    final repo = FootmatchRepository(dio);
+    final global = await repo.matches(FootmatchMatchStatus.completed);
+    final team = await repo.matches(FootmatchMatchStatus.completed, teamId: 3);
+    final result = await repo.createMatchResult(
+      matchId: 13,
+      homeScore: 3,
+      awayScore: 1,
+    );
+
+    expect(requests[0].path, '/api/team-matches/completed');
+    expect(requests[1].path, '/api/teams/3/matches/completed');
+    expect(requests[2].path, '/api/team-matches/13/result');
+    expect(requests[2].data, {'homeScore': 3, 'awayScore': 1});
+    expect(global.single.winnerTeamName, '서울 FC');
+    expect(team.single.status, FootmatchMatchStatus.completed);
+    expect(result.winnerTeamName, '서울 FC');
+    expect(result.isDraw, isFalse);
+  });
+
+  test('team match accept request list decodes request DTOs', () async {
+    final dio = Dio();
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      expect(options.path, '/api/team-matches/3/request/pendings');
+      handler.resolve(Response<Object?>(
+        requestOptions: options,
+        data: {
+          'requests': [
+            {
+              'requestId': 42,
+              'requesterUsername': 'awayLeader',
+              'requesterTeamName': '부산 FC',
+              'requesterTeamRating': 1600,
+              'requestAt': '2026-09-19T18:00:00',
+            },
+          ],
+        },
+      ));
+    }));
+
+    final requests = await FootmatchRepository(dio).matchAcceptRequests(3);
+    expect(requests.single.requestId, 42);
+    expect(requests.single.requesterTeamName, '부산 FC');
   });
 
   test('acceptance uses match and request identifiers in the plural route', () async {
