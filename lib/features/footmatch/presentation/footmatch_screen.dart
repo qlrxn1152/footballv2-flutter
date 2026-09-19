@@ -192,8 +192,9 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
         for (final member in _memberList!)
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.person_outline),
+            leading: CircleAvatar(child: Text('${member.id}')),
             title: Text(member.username),
+            subtitle: Text('회원 번호 ${member.id}'),
             trailing: Text(
               'RATING ${member.rating}',
               style: const TextStyle(fontWeight: FontWeight.w700),
@@ -238,12 +239,17 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
             leading: const Icon(Icons.shield_outlined),
             title: Text(team.teamName),
             subtitle: Text(
-              '팀장 ${team.leaderUsername} · ${team.memberCount}명',
+              '팀 #${team.id} · 팀장 ${team.leaderUsername} · ${team.memberCount}명',
             ),
             trailing: Text(
               'RATING ${team.teamRating}',
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
+            onTap: _busy
+                ? null
+                : () => _run(() async {
+                    await _loadTeam(team.id);
+                  }),
           ),
       const SizedBox(height: 8),
       _button('팀 목록 새로고침', _loadTeamList),
