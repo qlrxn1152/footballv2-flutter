@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import 'footmatch_directory.dart';
 import 'footmatch_match.dart';
 
 final footmatchRepositoryProvider = Provider<FootmatchRepository>(
@@ -29,6 +30,28 @@ class FootmatchRepository {
       });
 
   Future<Map<String, dynamic>> me() => _request('GET', '/api/members/me');
+
+  Future<List<FootmatchMemberListItem>> memberList() async {
+    final response = await _request('GET', '/api/members/list');
+    final items = response['members'];
+    if (items is! List) {
+      throw const ApiException('멤버 목록 응답 형식이 올바르지 않습니다.');
+    }
+    return items
+        .map((item) => FootmatchMemberListItem.fromJson(jsonMap(item)))
+        .toList(growable: false);
+  }
+
+  Future<List<FootmatchTeamListItem>> teamList() async {
+    final response = await _request('GET', '/api/teams/list');
+    final items = response['teams'];
+    if (items is! List) {
+      throw const ApiException('팀 목록 응답 형식이 올바르지 않습니다.');
+    }
+    return items
+        .map((item) => FootmatchTeamListItem.fromJson(jsonMap(item)))
+        .toList(growable: false);
+  }
   Future<Map<String, dynamic>> team(int id) =>
       _request('GET', '/api/teams/$id');
   Future<Map<String, dynamic>> members(int id) =>
@@ -131,7 +154,7 @@ class FootmatchRepository {
   }) async {
     final response = await _request(
       'POST',
-      '/api/team-matches/$matchId/result',
+      '/api/team-matches/$matchId/result/score',
       {
         'homeScore': homeScore,
         'awayScore': awayScore,
