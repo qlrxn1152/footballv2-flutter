@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../data/footmatch_match.dart';
 import '../data/footmatch_repository.dart';
 import 'footmatch_match_list.dart';
 
@@ -17,6 +18,8 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
   final _teamName = TextEditingController();
   final _matchNumber = TextEditingController();
   final _matchRequestNumber = TextEditingController();
+  final _homeScore = TextEditingController();
+  final _awayScore = TextEditingController();
   int _matchRevision = 0;
   final _requestNumber = TextEditingController();
   final _memberNumber = TextEditingController();
@@ -24,6 +27,7 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
   Map<String, dynamic>? _team;
   List<Map<String, dynamic>> _members = [];
   List<Map<String, dynamic>>? _requests;
+  List<FootmatchMatchAcceptRequest>? _matchAcceptRequests;
   final List<String> _receipts = [];
   bool _busy = false;
   String? _error;
@@ -46,7 +50,7 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
   @override
   void dispose() {
     for (final c in [_teamNumber, _teamName, _matchNumber,
-      _requestNumber, _memberNumber, _matchRequestNumber]) {
+      _requestNumber, _memberNumber, _matchRequestNumber, _homeScore, _awayScore]) {
       c.dispose();
     }
     super.dispose();
@@ -292,6 +296,48 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
     _receipt('참가 신청 완료 · ${r['homeTeamName']} vs ${r['awayTeamName']} · 경기 번호 ${r['matchId']} · 신청 번호 ${r['requestId']}');
   }
 
+  Future<void> _loadMatchAcceptRequests() async {
+    final teamId = _teamId;
+    if (teamId == null) throw const ApiException('팀을 먼저 조회해주세요.');
+    final requests = await _repo.matchAcceptRequests(teamId);
+    if (mounted) setState(() => _matchAcceptRequests = requests);
+  }
+
+  Future<void> _registerMatchResult() async {
+    final matchId = _number(_matchNumber, '경기 번호');
+    final homeScore = _numberAllowZero(_homeScore, '홈 점수');
+    final awayScore = _numberAllowZero(_awayScore, '원정 점수');
+    if (!await _confirm('경기 $matchId 결과를 $homeScore : $awayScore 로 등록할까요?')) {
+      return;
+    }
+
+    final result = await _repo.createMatchResult(
+      matchId: matchId,
+      homeScore: homeScore,
+      awayScore: awayScore,
+    );
+    final outcome = result.isDraw ? '무승부' : '${result.winnerTeamName} 승리';
+    _receipt(
+      '경기 결과 등록 완료 · ${result.homeTeamName} ${result.homeScore} : '
+      '${result.awayScore} ${result.awayTeamName} · $outcome',
+    );
+    if (mounted) {
+      setState(() {
+        _homeScore.clear();
+        _awayScore.clear();
+        _matchRevision++;
+      });
+    }
+  }
+
+  int _numberAllowZero(TextEditingController controller, String label) {
+    final value = int.tryParse(controller.text.trim());
+    if (value == null || value < 0) {
+      throw ApiException('$label를 0 이상의 숫자로 입력해주세요.');
+    }
+    return value;
+  }
+
   Widget _matches() => Column(children: [
     FootmatchMatchList(
       revision: _matchRevision,
@@ -323,7 +369,29 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
       }),
     ]),
     if (_leader) _card('경기 참가 신청 수락', [
-      const Text('위 경기 번호 입력란에 우리 팀이 등록한 경기 번호를 적고, 상대 팀에게 전달받은 신청 번호를 입력하세요.'),
+      const Text('우리 팀 매치에 들어온 참가 신청을 조회한 뒤 신청 번호를 선택할 수 있어요.'),
+      const SizedBox(height: 12),
+      _button('참가 신청 조회', _loadMatchAcceptRequests),
+      if (_matchAcceptRequests != null && _matchAcceptRequests!.isEmpty)
+        const Padding(
+          padding: EdgeInsets.only(top: 10),
+          child: Text('대기 중인 참가 신청이 없습니다.'),
+        ),
+      for (final request in _matchAcceptRequests ?? <FootmatchMatchAcceptRequest>[])
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(request.requesterTeamName),
+          subtitle: Text(
+            '${request.requesterUsername} · 레이팅 ${request.requesterTeamRating}'
+            '${request.requestAt == null ? '' : ' · ${request.requestAt}'}',
+          ),
+          trailing: TextButton(
+            onPressed: () => setState(
+              () => _matchRequestNumber.text = '${request.requestId}',
+            ),
+            child: Text('#${request.requestId} 선택'),
+          ),
+        ),
       const SizedBox(height: 12),
       _field(_matchRequestNumber, '경기 참가 신청 번호', number: true),
       _button('경기 신청 수락', () async {
@@ -332,8 +400,21 @@ class _FootmatchScreenState extends ConsumerState<FootmatchScreen> {
         if (!await _confirm('경기 $matchId 번의 신청 $requestId 번을 수락할까요?')) return;
         await _repo.acceptMatch(matchId, requestId);
         _receipt('경기 $matchId 매칭 완료');
-        if (mounted) setState(() { _matchRevision++; _matchRequestNumber.clear(); });
+        if (mounted) {
+          setState(() {
+            _matchRevision++;
+            _matchRequestNumber.clear();
+            _matchAcceptRequests = null;
+          });
+        }
       }),
+    ]),
+    if (_leader) _card('경기 결과 등록', [
+      const Text('MATCHED 상태 경기의 최종 점수를 입력하세요. 득점자 기록은 현재 1차 구현에서 제외되어 있습니다.'),
+      const SizedBox(height: 12),
+      _field(_homeScore, '홈 팀 점수', number: true),
+      _field(_awayScore, '원정 팀 점수', number: true),
+      _button('결과 등록', _registerMatchResult),
     ]),
     _card('경기 번호 보관', const [
       Text('등록·신청 결과는 내 정보 탭의 처리 내역에서 복사할 수 있어요.\n'
