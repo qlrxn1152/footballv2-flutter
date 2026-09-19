@@ -100,12 +100,58 @@ void main() {
 
     expect(requests[0].path, '/api/team-matches/completed');
     expect(requests[1].path, '/api/teams/3/matches/completed');
-    expect(requests[2].path, '/api/team-matches/13/result');
+    expect(requests[2].path, '/api/team-matches/13/result/score');
     expect(requests[2].data, {'homeScore': 3, 'awayScore': 1});
     expect(global.single.winnerTeamName, '서울 FC');
     expect(team.single.status, FootmatchMatchStatus.completed);
     expect(result.winnerTeamName, '서울 FC');
     expect(result.isDraw, isFalse);
+  });
+
+  test('member and team list endpoints decode wrapper responses', () async {
+    final dio = Dio();
+    final paths = <String>[];
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      paths.add(options.path);
+      if (options.path == '/api/members/list') {
+        handler.resolve(Response<Object?>(
+          requestOptions: options,
+          data: {
+            'members': [
+              {'username': 'player1', 'rating': 1510},
+              {'username': 'player2', 'rating': 1480},
+            ],
+          },
+        ));
+        return;
+      }
+      handler.resolve(Response<Object?>(
+        requestOptions: options,
+        data: {
+          'teams': [
+            {
+              'teamName': '서울 FC',
+              'teamRating': 1600,
+              'leaderUsername': 'captain',
+              'memberCount': 8,
+            },
+          ],
+        },
+      ));
+    }));
+
+    final repo = FootmatchRepository(dio);
+    final members = await repo.memberList();
+    final teams = await repo.teamList();
+
+    expect(paths, ['/api/members/list', '/api/teams/list']);
+    expect(members, hasLength(2));
+    expect(members.first.username, 'player1');
+    expect(members.first.rating, 1510);
+    expect(teams.single.teamName, '서울 FC');
+    expect(teams.single.teamRating, 1600);
+    expect(teams.single.leaderUsername, 'captain');
+    expect(teams.single.memberCount, 8);
   });
 
   test('team match accept request list decodes request DTOs', () async {
