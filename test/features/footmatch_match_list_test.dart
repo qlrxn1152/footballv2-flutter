@@ -118,8 +118,8 @@ void main() {
           requestOptions: options,
           data: {
             'members': [
-              {'username': 'player1', 'rating': 1510},
-              {'username': 'player2', 'rating': 1480},
+              {'id': 1, 'username': 'player1', 'rating': 1510},
+              {'id': 2, 'username': 'player2', 'rating': 1480},
             ],
           },
         ));
@@ -130,6 +130,7 @@ void main() {
         data: {
           'teams': [
             {
+              'id': 3,
               'teamName': '서울 FC',
               'teamRating': 1600,
               'leaderUsername': 'captain',
@@ -146,8 +147,10 @@ void main() {
 
     expect(paths, ['/api/members/list', '/api/teams/list']);
     expect(members, hasLength(2));
+    expect(members.first.id, 1);
     expect(members.first.username, 'player1');
     expect(members.first.rating, 1510);
+    expect(teams.single.id, 3);
     expect(teams.single.teamName, '서울 FC');
     expect(teams.single.teamRating, 1600);
     expect(teams.single.leaderUsername, 'captain');
